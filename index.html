@@ -1222,9 +1222,12 @@
             }
         }, 60000); 
 
-        // --- UNIFIED KEYBOARD SHORTCUTS ---
+// --- UNIFIED KEYBOARD SHORTCUTS ---
         let lastUsedSpeed = 1.0;
         window.addEventListener('keydown', (e) => {
+            // 1. Stop rapid-fire toggling if the key is held down for a millisecond too long
+            if (e.repeat) return; 
+
             const activeTag = document.activeElement.tagName;
             if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
 
@@ -1245,6 +1248,9 @@
                     break;
                 case ' ':
                     e.preventDefault();
+                    // 2. Un-focus buttons so Spacebar doesn't accidentally click them
+                    if (activeTag === 'BUTTON') document.activeElement.blur();
+                    
                     let isPaused = (activePlayerType === 'youtube' && ytPlayerReady) ? (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) : video.paused;
                     if (isPaused) playActiveMedia();
                     else pauseActiveMedia();
