@@ -20,6 +20,8 @@
             --brand-hover: #4338ca;
             --accent: #0ea5e9;        
             --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
@@ -44,40 +46,65 @@
         @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
         @keyframes fadeOut { to { opacity: 0; } }
 
-        /* --- ENTRY GATE (Create / Join) --- */
-        #entryGate { position: fixed; inset: 0; background: rgba(9,9,11,0.92); backdrop-filter: blur(6px); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .gate-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+        /* --- ENTRY GATE --- */
+        #entryGate { position: fixed; inset: 0; background: rgba(9,9,11,0.92); backdrop-filter: blur(6px); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+        .gate-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
         .gate-card h2 { font-size: 20px; margin-bottom: 6px; }
-        .gate-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 22px; line-height: 1.5; }
+        .gate-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
 
-        /* --- MAIN STAGE (Theater + Social) --- */
+        /* --- MAIN STAGE --- */
         .main-stage { display: flex; flex: 1; min-height: 0; max-width: 1600px; margin: 0 auto; width: 100%; padding: 16px 24px; gap: 16px; align-items: stretch; }
 
-        /* LEFT: THEATER */
         .theater { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
         .player-wrapper { width: 100%; flex: 1; min-height: 0; background: #000; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5); position: relative; display: flex; }
         video#myVideo { width: 100%; height: 100%; object-fit: contain; outline: none; z-index: 1; }
         
-        /* PINNED VIDEO OVERLAY */
         video#pinnedVideo { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; z-index: 10; background: #09090b; }
         .unpin-btn { display: none; position: absolute; top: 16px; right: 16px; z-index: 11; padding: 8px 16px; background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; font-weight: 600; cursor: pointer; backdrop-filter: blur(4px); transition: 0.2s; }
         .unpin-btn:hover { background: rgba(0,0,0,0.8); border-color: white; }
+
+        #videoStatusOverlay { position: absolute; top: 16px; left: 16px; z-index: 12; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(6px); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--text-main); padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none; align-items: center; gap: 8px; pointer-events: none; transition: opacity 0.2s ease; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+        .status-dot.pulsing { animation: pulseDot 1.2s infinite ease-in-out; }
+        @keyframes pulseDot { 0% { opacity: 0.3; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.3; transform: scale(0.9); } }
 
         .playback-bar { background-color: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         .playback-info h4 { font-size: 15px; margin-bottom: 2px; }
         .playback-info p { font-size: 12px; color: var(--text-muted); }
         select { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-base); color: var(--text-main); font-size: 14px; font-weight: 600; cursor: pointer; outline: none; }
 
-        /* RIGHT: SOCIAL SIDEBAR */
         .social-sidebar { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
 
-        .cam-box { width: 100%; aspect-ratio: 16/10; background: #111; border-radius: 14px; border: 1px solid var(--border); overflow: hidden; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        /* --- UPDATED: RESIZABLE TILES --- */
+        .cam-box { 
+            width: 100%; aspect-ratio: 16/10; background: #111; border-radius: 14px; border: 1px solid var(--border); position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; 
+            overflow: hidden; 
+            resize: both; 
+            min-height: 80px; 
+            min-width: 120px; 
+            max-width: 100%; 
+        }
+        
         .cam-box video { width: 100%; height: 100%; object-fit: cover; }
         #localVideo { transform: scaleX(-1); }
-        .cam-label { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); color: white; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 600; backdrop-filter: blur(4px); z-index: 2; }
-        .cam-placeholder { color: var(--border); font-size: 24px; }
+        .cam-label { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); color: white; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 600; backdrop-filter: blur(4px); z-index: 2; pointer-events: none; }
+        .cam-placeholder { color: var(--border); font-size: 24px; pointer-events: none; }
 
-        .cam-controls-overlay { position: absolute; bottom: 0; left: 0; right: 0; display: flex; gap: 6px; padding: 8px; background: linear-gradient(0deg, rgba(0,0,0,0.8), transparent); z-index: 3; }
+        /* --- UPDATED: HOVER/CLICK TO REVEAL CONTROLS --- */
+        .cam-controls-overlay { 
+            position: absolute; bottom: 0; left: 0; right: 0; display: flex; gap: 6px; padding: 8px; background: linear-gradient(0deg, rgba(0,0,0,0.8), transparent); z-index: 3; 
+            opacity: 0; 
+            visibility: hidden; 
+            transition: all 0.2s ease-in-out; 
+        }
+        
+        /* Show controls on hover OR when active class is toggled via JS click */
+        .cam-box:hover .cam-controls-overlay,
+        .cam-box.active-controls .cam-controls-overlay {
+            opacity: 1; 
+            visibility: visible;
+        }
+
         .cam-ctrl-btn { flex: 1; padding: 7px 4px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.15); background: rgba(24,24,27,0.85); color: var(--text-main); font-size: 11px; font-weight: 600; cursor: pointer; transition: 0.15s; backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; gap: 4px; }
         .cam-ctrl-btn:hover { background: rgba(63,63,70,0.9); }
         .cam-ctrl-btn.join { background: var(--success); border-color: var(--success); color: white; }
@@ -85,7 +112,6 @@
         .cam-ctrl-btn.off { background: rgba(220,38,38,0.85); border-color: #dc2626; }
         .cam-ctrl-btn.pin { background: rgba(14, 165, 233, 0.85); border-color: var(--accent); }
 
-        /* --- CHAT --- */
         .chat-section { display: flex; flex-direction: column; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; flex: 1; min-height: 0; }
         .chat-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--border); flex-shrink: 0; }
         .chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 10px 10px 0 10px; min-height: 0; }
@@ -105,7 +131,6 @@
         .chat-input-row button { padding: 8px 13px; border-radius: 8px; border: none; background: var(--brand); color: white; font-weight: bold; font-size: 12px; cursor: pointer; flex-shrink: 0; }
         .chat-input-row button:hover { background: var(--brand-hover); }
 
-        /* --- SETTINGS DRAWER --- */
         #settingsOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 900; display: none; }
         #settingsOverlay.open { display: block; }
         .settings-drawer { position: fixed; top: 0; right: -380px; width: 360px; max-width: 90vw; height: 100%; background: var(--bg-surface); border-left: 1px solid var(--border); z-index: 901; transition: right 0.25s ease; display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,0.4); }
@@ -123,6 +148,8 @@
         .btn-primary:hover { background: var(--brand-hover); }
         .btn-secondary { background: var(--bg-surface-hover); color: var(--text-main); border: 1px solid var(--border); }
         .btn-secondary:hover { background: var(--border); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
         
         .input-group { display: flex; gap: 8px; margin-top: 10px; }
         .input-group input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-base); color: var(--text-main); font-size: 14px; text-align: center; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; outline: none;}
@@ -135,9 +162,11 @@
         .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--border); }
         .divider span { padding: 0 10px; color: var(--text-muted); }
 
-        .room-code-display { display: flex; align-items: center; justify-content: space-between; background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 6px; }
+        .room-code-display { display: flex; align-items: center; justify-content: space-between; background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; }
         .room-code-display span { font-size: 16px; font-weight: 700; letter-spacing: 2px; }
         .room-code-display small { color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; }
+
+        .recovery-key-box { background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; word-break: break-all; font-family: monospace; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
 
         @media (max-width: 1000px) {
             body { height: auto; min-height: 100vh; overflow: auto; }
@@ -156,14 +185,19 @@
     <div id="entryGate">
         <div class="gate-card">
             <h2>🎬 Private Theatre</h2>
-            <p>Create a new room to host, or join one with a 6-digit OTP code.</p>
+            <p>Create a room, join with a 6-digit OTP code, or recover admin access.</p>
+            
             <button class="btn btn-primary" id="createBtn">Create Room (Host)</button>
+            
             <div class="divider"><span>OR JOIN</span></div>
             <div class="input-group">
-                <!-- UPDATED: inputmode="numeric" triggers phone number pads -->
                 <input type="text" id="joinInput" placeholder="6-DIGIT CODE" maxlength="6" inputmode="numeric" pattern="[0-9]*">
                 <button class="btn btn-secondary" id="joinBtn" style="width: 80px;">Join</button>
             </div>
+
+            <div class="divider"><span>RECOVER ADMIN</span></div>
+            <input type="text" id="recoveryInput" class="link-input" placeholder="Paste Admin Recovery Key..." style="text-align: center; font-size: 12px;">
+            <button class="btn btn-secondary" id="recoverAdminBtn" style="margin-top: 4px; font-size: 13px;">Recover Admin Session</button>
         </div>
     </div>
 
@@ -180,9 +214,12 @@
         <div class="theater">
             <div class="player-wrapper">
                 <video id="myVideo" preload="auto"></video>
-                <!-- NEW: Pinned Video Element -->
                 <video id="pinnedVideo" autoplay playsinline muted></video>
                 <button class="unpin-btn" id="unpinBtn">❌ Close Pin</button>
+                <div id="videoStatusOverlay">
+                    <div class="status-dot pulsing" id="statusDot"></div>
+                    <span id="statusText">Connecting...</span>
+                </div>
             </div>
             
             <div class="playback-bar">
@@ -200,7 +237,7 @@
 
         <div class="social-sidebar">
 
-            <div class="cam-box">
+            <div class="cam-box" id="localCamBox">
                 <div class="cam-placeholder" id="localPlaceholder">📷</div>
                 <video id="localVideo" autoplay playsinline muted></video>
                 <div class="cam-label" id="localLabel">You</div>
@@ -208,16 +245,14 @@
                     <button class="cam-ctrl-btn join" id="startCallBtn">Join Call</button>
                     <button class="cam-ctrl-btn" id="micBtn" style="display:none;">🎙️ Mute</button>
                     <button class="cam-ctrl-btn" id="camBtn" style="display:none;">📷 Cam</button>
-                    <!-- NEW: Pin Button -->
                     <button class="cam-ctrl-btn pin" id="pinLocalBtn" style="display:none;" onclick="pinCamera('local')">📌 Pin</button>
                 </div>
             </div>
 
-            <div class="cam-box">
+            <div class="cam-box" id="remoteCamBox">
                 <div class="cam-placeholder" id="remotePlaceholder">🎥</div>
                 <video id="remoteVideo" autoplay playsinline></video>
                 <div class="cam-label" id="remoteLabel">Partner</div>
-                <!-- NEW: Remote Controls Overlay -->
                 <div class="cam-controls-overlay" id="remoteControlsOverlay" style="display:none;">
                     <button class="cam-ctrl-btn pin" onclick="pinCamera('remote')">📌 Pin to Main Screen</button>
                 </div>
@@ -245,12 +280,19 @@
         </div>
         <div class="drawer-body">
             <div>
-                <div class="drawer-section-title">Room</div>
+                <div class="drawer-section-title">Room & Session</div>
                 <div class="room-code-display" id="roomCodeDisplay" style="display:none;">
                     <div><small>Room code</small><br><span id="roomCodeText">—</span></div>
                 </div>
+                <div id="adminRecoveryContainer" style="display:none; margin-bottom: 12px;">
+                    <small style="color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 11px;">Admin Recovery Key</small>
+                    <div class="recovery-key-box" id="recoveryKeyBox">—</div>
+                    <button class="btn btn-secondary" id="copyRecoveryBtn" style="font-size: 12px; padding: 8px;">📋 Copy Recovery Key</button>
+                </div>
                 <p id="notConnectedNote" style="font-size: 13px; color: var(--text-muted);">Not connected to a room yet.</p>
+                <button class="btn btn-danger" id="leaveRoomBtn" style="display:none; margin-top: 12px;">🚪 Leave Room</button>
             </div>
+
             <div id="adminVideoPanel" style="display:none;">
                 <div class="drawer-section-title">Host Controls</div>
                 <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;">Paste the <b>Dropbox Link</b> or <b>Cloudflare R2 Link</b> below.</p>
@@ -263,7 +305,6 @@
     </div>
 
     <script>
-        // --- 1. SETUP & VARIABLES ---
         const supabaseUrl = 'https://jfmhuhbdcayrrkanungn.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmbWh1aGJkY2F5cnJrYW51bmduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxMzQxMDMsImV4cCI6MjEwNTcxMDEwM30.BhNw7rE_X-GfIoEB9KXRfNarFTHmL0wLigHA3ZvzKZY'; 
         const mySupabase = supabase.createClient(supabaseUrl, supabaseKey);
@@ -273,6 +314,9 @@
         const unpinBtn = document.getElementById('unpinBtn');
         const localVideo = document.getElementById('localVideo');
         const remoteVideo = document.getElementById('remoteVideo');
+        const videoStatusOverlay = document.getElementById('videoStatusOverlay');
+        const statusText = document.getElementById('statusText');
+        const statusDot = document.getElementById('statusDot');
 
         const qualitySelect = document.getElementById('qualitySelect');
         const qualityContainer = document.getElementById('qualityContainer');
@@ -287,6 +331,9 @@
         const roomCodeText = document.getElementById('roomCodeText');
         const notConnectedNote = document.getElementById('notConnectedNote');
         const adminVideoPanel = document.getElementById('adminVideoPanel');
+        const adminRecoveryContainer = document.getElementById('adminRecoveryContainer');
+        const recoveryKeyBox = document.getElementById('recoveryKeyBox');
+        const leaveRoomBtn = document.getElementById('leaveRoomBtn');
 
         function openDrawer() { settingsDrawer.classList.add('open'); settingsOverlay.classList.add('open'); }
         function closeDrawer() { settingsDrawer.classList.remove('open'); settingsOverlay.classList.remove('open'); }
@@ -294,13 +341,26 @@
         drawerCloseBtn.addEventListener('click', closeDrawer);
         settingsOverlay.addEventListener('click', closeDrawer);
 
+        // --- NEW: TILE CLICK TO SHOW CONTROLS ON MOBILE ---
+        document.querySelectorAll('.cam-box').forEach(box => {
+            box.addEventListener('click', (e) => {
+                // Prevent toggling if the user is clicking an actual button inside the overlay
+                if (!e.target.closest('.cam-ctrl-btn')) {
+                    box.classList.toggle('active-controls');
+                }
+            });
+        });
+
         let myRoomCode = "";
         let isController = false;
         let currentVideoJson = ""; 
         let adminState = 'paused';
         let adminTime = 0;
+        let mySessionId = 'sess_' + Math.random().toString(36).substring(2, 11) + Date.now();
+        let myRecoveryKey = "";
 
         let rtcChannel;
+        let syncChannel;
         let peerConnection;
         let localStream;
         let amIReady = false;
@@ -309,7 +369,29 @@
 
         function dismissGate() { entryGate.style.display = 'none'; }
 
-        // --- NEW: PINNING ENGINE ---
+        let statusHideTimeout;
+        function updateVideoStatus(text, isPulsing = true, showDuration = 0) {
+            if (!myRoomCode) {
+                videoStatusOverlay.style.display = 'none';
+                return;
+            }
+            videoStatusOverlay.style.display = 'flex';
+            statusText.innerText = text;
+            if (isPulsing) {
+                statusDot.classList.add('pulsing');
+            } else {
+                statusDot.classList.remove('pulsing');
+            }
+            if (showDuration > 0) {
+                clearTimeout(statusHideTimeout);
+                statusHideTimeout = setTimeout(() => {
+                    if (statusText.innerText === text) {
+                        videoStatusOverlay.style.display = 'none';
+                    }
+                }, showDuration);
+            }
+        }
+
         function pinCamera(source) {
             if (source === 'local') {
                 if (!localVideo.srcObject) return;
@@ -330,7 +412,6 @@
             pinnedVideo.srcObject = null;
         });
 
-        // --- 2. SMART URL FORMATTER ---
         function parseDriveUrl(input) {
             if (!input) return "";
             const val = input.trim();
@@ -348,7 +429,6 @@
             return val;
         }
 
-        // --- NOTIFICATION SYSTEM ---
         function triggerNotification(sender, text) {
             const container = document.getElementById('notification-container');
             const toast = document.createElement('div');
@@ -363,8 +443,8 @@
             setTimeout(() => { toast.remove(); }, 3800);
         }
 
-        // --- 3. SUPABASE REALTIME (WebRTC & Chat) ---
         function initRTCChannel() {
+            if (rtcChannel) mySupabase.removeChannel(rtcChannel);
             rtcChannel = mySupabase.channel('webrtc-' + myRoomCode);
             
             rtcChannel.on('broadcast', { event: 'signal' }, async (payload) => {
@@ -373,7 +453,7 @@
                 if (data.type === 'ready') {
                     if (isController) {
                         viewerReady = true;
-                        if (amIReady) {
+                        if (amIReady && peerConnection) {
                             const offer = await peerConnection.createOffer(); await peerConnection.setLocalDescription(offer);
                             rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'offer', offer: offer } });
                         }
@@ -386,10 +466,10 @@
                     rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'answer', answer: answer } });
                 }
                 else if (data.type === 'answer') {
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    if (peerConnection) await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                 }
                 else if (data.type === 'candidate') {
-                    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    if (peerConnection) await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
                 }
                 else if (data.type === 'chat') {
                     appendMessage(data.sender, data.text, false);
@@ -403,7 +483,6 @@
             document.getElementById('chatMessages').innerHTML = ''; 
         }
 
-        // --- 4. TEXT CHAT LOGIC ---
         const chatInput = document.getElementById('chatInput');
         const chatMessages = document.getElementById('chatMessages');
 
@@ -431,19 +510,25 @@
         document.getElementById('sendChatBtn').addEventListener('click', sendChatMessage);
         chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChatMessage(); });
 
-        // --- 5. CAMERA LOGIC ---
         function createPeerConnection() {
+            if (peerConnection) {
+                peerConnection.close();
+            }
             peerConnection = new RTCPeerConnection(rtcConfig);
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            if (localStream) {
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            }
             
             peerConnection.ontrack = (event) => {
                 document.getElementById('remoteVideo').srcObject = event.streams[0];
                 document.getElementById('remotePlaceholder').style.display = 'none'; 
-                document.getElementById('remoteControlsOverlay').style.display = 'flex'; // Show remote pin button
+                document.getElementById('remoteControlsOverlay').style.display = 'flex'; 
             };
             
             peerConnection.onicecandidate = (event) => {
-                if (event.candidate) rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'candidate', candidate: event.candidate } });
+                if (event.candidate && rtcChannel) {
+                    rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'candidate', candidate: event.candidate } });
+                }
             };
         }
 
@@ -461,7 +546,7 @@
                 amIReady = true;
                 
                 if (isController) {
-                    if (viewerReady) {
+                    if (viewerReady && peerConnection) {
                         const offer = await peerConnection.createOffer(); await peerConnection.setLocalDescription(offer);
                         rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'offer', offer: offer } });
                     }
@@ -470,28 +555,39 @@
                 }
                 
                 btn.style.display = 'none';
+                
+                // Show controls and active class so user immediately sees them after allowing camera
                 document.getElementById('micBtn').style.display = 'flex';
                 document.getElementById('camBtn').style.display = 'flex';
-                document.getElementById('pinLocalBtn').style.display = 'flex'; // Show local pin button
+                document.getElementById('pinLocalBtn').style.display = 'flex'; 
+                document.getElementById('localCamBox').classList.add('active-controls');
+                
             } catch (err) {
-                alert("Camera access denied.");
+                alert("Camera access denied or unavailable.");
                 btn.innerText = "Join Call";
             }
         });
 
         document.getElementById('micBtn').addEventListener('click', (e) => {
-            const track = localStream.getAudioTracks()[0]; track.enabled = !track.enabled;
-            e.target.innerText = track.enabled ? '🎙️ Mute' : '🔇 Unmute';
-            e.target.classList.toggle('off', !track.enabled);
+            if (!localStream) return;
+            const track = localStream.getAudioTracks()[0];
+            if (track) {
+                track.enabled = !track.enabled;
+                e.target.innerText = track.enabled ? '🎙️ Mute' : '🔇 Unmute';
+                e.target.classList.toggle('off', !track.enabled);
+            }
         });
 
         document.getElementById('camBtn').addEventListener('click', (e) => {
-            const track = localStream.getVideoTracks()[0]; track.enabled = !track.enabled;
-            e.target.innerText = track.enabled ? '📷 Cam' : '📷 Off';
-            e.target.classList.toggle('off', !track.enabled);
+            if (!localStream) return;
+            const track = localStream.getVideoTracks()[0];
+            if (track) {
+                track.enabled = !track.enabled;
+                e.target.innerText = track.enabled ? '📷 Cam' : '📷 Off';
+                e.target.classList.toggle('off', !track.enabled);
+            }
         });
 
-        // --- 6. MOVIE SYNC LOGIC ---
         function applyVideoSources(jsonString) {
             if (!jsonString || jsonString === currentVideoJson) return; 
             currentVideoJson = jsonString;
@@ -509,6 +605,7 @@
             });
 
             if (firstAvailableUrl) {
+                updateVideoStatus("Loading video...", true);
                 const time = video.currentTime; const speed = video.playbackRate; const paused = video.paused;
                 video.src = firstAvailableUrl; video.currentTime = time; video.playbackRate = speed;
                 if (!paused) video.play();
@@ -525,56 +622,276 @@
             if (!paused) video.play();
         });
 
-        // UPDATED: GENERATE 6-DIGIT OTP INSTEAD OF TEXT CODE
+        video.addEventListener('loadstart', () => { if (myRoomCode) updateVideoStatus("Loading video...", true); });
+        video.addEventListener('loadedmetadata', () => { if (myRoomCode) updateVideoStatus("Synced", false, 2500); });
+        video.addEventListener('canplay', () => { if (myRoomCode) updateVideoStatus("Synced", false, 2500); });
+        video.addEventListener('playing', () => { 
+            if (myRoomCode) {
+                if (!isController && adminState === 'paused') {
+                    video.pause();
+                    updateVideoStatus("Paused by Admin", false);
+                } else {
+                    updateVideoStatus("Synced", false, 2000);
+                }
+            }
+        });
+        video.addEventListener('waiting', () => { 
+            if (myRoomCode) {
+                if (adminState === 'paused') {
+                    updateVideoStatus("Paused by Admin", false);
+                } else {
+                    updateVideoStatus("Buffering...", true);
+                }
+            }
+        });
+        video.addEventListener('stalled', () => { if (myRoomCode) updateVideoStatus("Connection unstable", true); });
+        video.addEventListener('error', () => { if (myRoomCode) updateVideoStatus("Unable to load video", false); });
+
         document.getElementById('createBtn').addEventListener('click', async () => {
-            const myUserId = 'user_' + Math.floor(Math.random() * 100000);
-            
-            // Generate numeric 6-digit code
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-            const { data } = await mySupabase.from('rooms').insert([{ room_code: otpCode, controller_id: myUserId }]).select();
+            const recoveryToken = 'rec_' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+            
+            const { data, error } = await mySupabase.from('rooms').insert([{ 
+                room_code: otpCode, 
+                controller_id: mySessionId
+            }]).select();
+
+            if (error) {
+                alert("Error creating room: " + error.message);
+                return;
+            }
             
             myRoomCode = data[0].room_code;
             isController = true;
+            myRecoveryKey = recoveryToken;
             
-            video.controls = true; 
-            topStatus.innerText = "🟢 Admin | Room: " + myRoomCode;
-            topStatus.className = "status-badge admin";
-            document.getElementById('localLabel').innerText = "Admin (You)";
-            
-            initRTCChannel();
-            dismissGate();
-            roomCodeDisplay.style.display = 'flex';
-            roomCodeText.innerText = myRoomCode;
-            notConnectedNote.style.display = 'none';
-            adminVideoPanel.style.display = 'block';
+            localStorage.setItem('private_theater_recovery_' + myRoomCode, myRecoveryKey);
+
+            localStorage.setItem('private_theater_session', JSON.stringify({
+                sessionId: mySessionId,
+                roomCode: myRoomCode,
+                role: 'admin',
+                recoveryKey: myRecoveryKey
+            }));
+
+            setupActiveRoomUI(true, myRoomCode, myRecoveryKey);
         });
 
         document.getElementById('joinBtn').addEventListener('click', async () => {
             const inputCode = document.getElementById('joinInput').value.trim().toUpperCase();
             if (inputCode.length === 6) {
+                const { data, error } = await mySupabase.from('rooms').select('*').eq('room_code', inputCode).single();
+                if (error || !data) {
+                    alert("Room not found or invalid code.");
+                    return;
+                }
+
                 myRoomCode = inputCode;
                 isController = false;
-                
-                video.controls = true; 
-                topStatus.innerText = "🔵 Viewer | Room: " + myRoomCode;
-                topStatus.className = "status-badge viewer";
-                document.getElementById('localLabel').innerText = "Viewer (You)";
-                
-                initRTCChannel();
-                dismissGate();
-                roomCodeDisplay.style.display = 'flex';
-                roomCodeText.innerText = myRoomCode;
-                notConnectedNote.style.display = 'none';
-                
-                const { data } = await mySupabase.from('rooms').select('*').eq('room_code', myRoomCode).single();
-                if (data) {
-                    if (data.video_url) applyVideoSources(data.video_url);
-                    if (data.position) { video.currentTime = data.position; adminTime = data.position; }
-                    if (data.playback_speed) video.playbackRate = data.playback_speed;
-                    if (data.playback_state) adminState = data.playback_state;
-                    if (data.playback_state === 'playing') video.play();
+                myRecoveryKey = "";
+
+                localStorage.setItem('private_theater_session', JSON.stringify({
+                    sessionId: mySessionId,
+                    roomCode: myRoomCode,
+                    role: 'viewer'
+                }));
+
+                setupActiveRoomUI(false, myRoomCode, "");
+
+                if (data.video_url) applyVideoSources(data.video_url);
+                if (data.position) { video.currentTime = data.position; adminTime = data.position; }
+                if (data.playback_speed) video.playbackRate = data.playback_speed;
+                if (data.playback_state) adminState = data.playback_state;
+                if (adminState === 'playing') video.play();
+            } else { 
+                alert("Please enter a valid 6-digit room code."); 
+            }
+        });
+
+        document.getElementById('recoverAdminBtn').addEventListener('click', async () => {
+            const keyInput = document.getElementById('recoveryInput').value.trim();
+            if (!keyInput) {
+                alert("Please enter a valid recovery key.");
+                return;
+            }
+
+            let targetRoomCode = "";
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k.startsWith('private_theater_recovery_') && localStorage.getItem(k) === keyInput) {
+                    targetRoomCode = k.replace('private_theater_recovery_', '');
+                    break;
                 }
-            } else { alert("Please enter a valid 6-digit room code."); }
+            }
+
+            if (!targetRoomCode) {
+                targetRoomCode = prompt("Enter the 6-digit room code associated with this recovery key:");
+            }
+
+            if (!targetRoomCode || targetRoomCode.length !== 6) {
+                alert("Invalid recovery details.");
+                return;
+            }
+
+            const { data: roomData, error } = await mySupabase.from('rooms').select('*').eq('room_code', targetRoomCode).single();
+            if (error || !roomData) {
+                alert("Room not found.");
+                return;
+            }
+
+            const { error: updateErr } = await mySupabase.from('rooms')
+                .update({ controller_id: mySessionId })
+                .eq('room_code', targetRoomCode);
+
+            if (updateErr) {
+                alert("Failed to recover admin status: " + updateErr.message);
+                return;
+            }
+
+            myRoomCode = targetRoomCode;
+            isController = true;
+            myRecoveryKey = keyInput;
+
+            localStorage.setItem('private_theater_session', JSON.stringify({
+                sessionId: mySessionId,
+                roomCode: myRoomCode,
+                role: 'admin',
+                recoveryKey: myRecoveryKey
+            }));
+
+            setupActiveRoomUI(true, myRoomCode, myRecoveryKey);
+
+            if (roomData.video_url) applyVideoSources(roomData.video_url);
+            if (roomData.position) { video.currentTime = roomData.position; adminTime = roomData.position; }
+            if (roomData.playback_speed) video.playbackRate = roomData.playback_speed;
+            if (roomData.playback_state) adminState = roomData.playback_state;
+            if (adminState === 'playing') video.play();
+
+            alert("Admin privileges successfully recovered!");
+        });
+
+        function setupActiveRoomUI(asAdmin, roomCode, recoveryKey) {
+            video.controls = true; 
+            topStatus.innerText = (asAdmin ? "🟢 Admin" : "🔵 Viewer") + " | Room: " + roomCode;
+            topStatus.className = "status-badge " + (asAdmin ? "admin" : "viewer");
+            document.getElementById('localLabel').innerText = (asAdmin ? "Admin" : "Viewer") + " (You)";
+            
+            initRTCChannel();
+            initSyncChannel();
+            dismissGate();
+            roomCodeDisplay.style.display = 'flex';
+            roomCodeText.innerText = roomCode;
+            notConnectedNote.style.display = 'none';
+            leaveRoomBtn.style.display = 'block';
+
+            if (asAdmin) {
+                adminVideoPanel.style.display = 'block';
+                adminRecoveryContainer.style.display = 'block';
+                recoveryKeyBox.innerText = recoveryKey || localStorage.getItem('private_theater_recovery_' + roomCode) || 'Saved on this browser';
+            } else {
+                adminVideoPanel.style.display = 'none';
+                adminRecoveryContainer.style.display = 'none';
+            }
+
+            updateVideoStatus("Synced", false, 2000);
+        }
+
+        document.getElementById('copyRecoveryBtn').addEventListener('click', () => {
+            navigator.clipboard.writeText(recoveryKeyBox.innerText);
+            alert("Recovery key copied to clipboard!");
+        });
+
+        leaveRoomBtn.addEventListener('click', () => {
+            if (!confirm("Are you sure you want to leave the room?")) return;
+            destroyCurrentSession(true);
+        });
+
+        function destroyCurrentSession(showGate = true) {
+            if (peerConnection) { peerConnection.close(); peerConnection = null; }
+            if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+            document.getElementById('localVideo').srcObject = null;
+            document.getElementById('remoteVideo').srcObject = null;
+            document.getElementById('localPlaceholder').style.display = 'block';
+            document.getElementById('remotePlaceholder').style.display = 'block';
+
+            if (rtcChannel) { mySupabase.removeChannel(rtcChannel); rtcChannel = null; }
+            if (syncChannel) { mySupabase.removeChannel(syncChannel); syncChannel = null; }
+
+            localStorage.removeItem('private_theater_session');
+            myRoomCode = "";
+            isController = false;
+            currentVideoJson = "";
+            myRecoveryKey = "";
+
+            video.pause();
+            video.src = "";
+            qualityContainer.style.display = 'none';
+            document.getElementById('videoInfoText').innerText = "Create or join a room below to begin...";
+            document.getElementById('videoInfoText').style.color = "var(--text-muted)";
+            videoStatusOverlay.style.display = 'none';
+
+            topStatus.innerText = "Not Connected";
+            topStatus.className = "status-badge";
+            roomCodeDisplay.style.display = 'none';
+            adminVideoPanel.style.display = 'none';
+            adminRecoveryContainer.style.display = 'none';
+            leaveRoomBtn.style.display = 'none';
+            notConnectedNote.style.display = 'block';
+            
+            document.getElementById('startCallBtn').style.display = 'flex';
+            document.getElementById('startCallBtn').innerText = "Join Call";
+            document.getElementById('micBtn').style.display = 'none';
+            document.getElementById('camBtn').style.display = 'none';
+            document.getElementById('pinLocalBtn').style.display = 'none';
+            document.getElementById('remoteControlsOverlay').style.display = 'none';
+            
+            document.getElementById('localCamBox').classList.remove('active-controls');
+            document.getElementById('remoteCamBox').classList.remove('active-controls');
+
+            document.getElementById('chatInput').disabled = true;
+            document.getElementById('sendChatBtn').disabled = true;
+            document.getElementById('chatMessages').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 11px; margin-top: auto;">Join a room to chat</div>';
+
+            closeDrawer();
+            if (showGate) { entryGate.style.display = 'flex'; }
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const savedSession = localStorage.getItem('private_theater_session');
+            if (!savedSession) return;
+
+            try {
+                const session = JSON.parse(savedSession);
+                if (!session || !session.roomCode || !session.sessionId) return;
+
+                const { data: roomData, error } = await mySupabase.from('rooms').select('*').eq('room_code', session.roomCode).single();
+                if (error || !roomData) {
+                    localStorage.removeItem('private_theater_session');
+                    return;
+                }
+
+                mySessionId = session.sessionId;
+                myRoomCode = session.roomCode;
+
+                if (session.role === 'admin' && roomData.controller_id === mySessionId) {
+                    isController = true;
+                    myRecoveryKey = localStorage.getItem('private_theater_recovery_' + myRoomCode) || session.recoveryKey || '';
+                } else {
+                    isController = false;
+                }
+
+                setupActiveRoomUI(isController, myRoomCode, myRecoveryKey);
+
+                if (roomData.video_url) applyVideoSources(roomData.video_url);
+                if (roomData.position) { video.currentTime = roomData.position; adminTime = roomData.position; }
+                if (roomData.playback_speed) video.playbackRate = roomData.playback_speed;
+                if (roomData.playback_state) adminState = roomData.playback_state;
+                if (adminState === 'playing') video.play();
+
+            } catch(e) {
+                console.error("Session restoration error:", e);
+                localStorage.removeItem('private_theater_session');
+            }
         });
 
         document.getElementById('broadcastBtn').addEventListener('click', async () => {
@@ -594,40 +911,87 @@
             setTimeout(() => { btn.innerText = "Broadcast to Room"; closeDrawer(); }, 800);
         });
 
-        // --- READ-ONLY ENFORCEMENT & OUTBOUND SYNC ---
         video.addEventListener('play', async () => { 
-            if (isController && myRoomCode) await mySupabase.from('rooms').update({ playback_state: 'playing', position: video.currentTime }).eq('room_code', myRoomCode); 
-            else if (!isController && adminState === 'paused') video.pause(); 
+            if (isController && myRoomCode) {
+                await mySupabase.from('rooms').update({ playback_state: 'playing', position: video.currentTime }).eq('room_code', myRoomCode); 
+            } else if (!isController && adminState === 'paused') {
+                video.pause(); 
+                updateVideoStatus("Paused by Admin", false);
+            } 
         });
         
         video.addEventListener('pause', async () => { 
-            if (isController && myRoomCode) await mySupabase.from('rooms').update({ playback_state: 'paused', position: video.currentTime }).eq('room_code', myRoomCode); 
-            else if (!isController && adminState === 'playing') video.play();
+            if (isController && myRoomCode) {
+                await mySupabase.from('rooms').update({ playback_state: 'paused', position: video.currentTime }).eq('room_code', myRoomCode); 
+            } else if (!isController && adminState === 'playing') {
+                video.play();
+            }
         });
         
         video.addEventListener('seeked', async () => { 
-            if (isController && myRoomCode) await mySupabase.from('rooms').update({ position: video.currentTime }).eq('room_code', myRoomCode); 
-            else if (!isController) { if (Math.abs(video.currentTime - adminTime) > 1.5) video.currentTime = adminTime; }
+            if (isController && myRoomCode) {
+                await mySupabase.from('rooms').update({ position: video.currentTime }).eq('room_code', myRoomCode); 
+            } else if (!isController) { 
+                if (Math.abs(video.currentTime - adminTime) > 1.5) {
+                    updateVideoStatus("↻ Syncing...", true);
+                    video.currentTime = adminTime;
+                } 
+            }
         });
         
-        video.addEventListener('ratechange', async () => { if (isController && myRoomCode) await mySupabase.from('rooms').update({ playback_speed: video.playbackRate }).eq('room_code', myRoomCode); });
+        video.addEventListener('ratechange', async () => { 
+            if (isController && myRoomCode) {
+                await mySupabase.from('rooms').update({ playback_speed: video.playbackRate }).eq('room_code', myRoomCode); 
+            } 
+        });
 
-        // INBOUND SYNC
-        mySupabase.channel('room-sync')
-          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms' }, (payload) => {
-              if (payload.new.room_code === myRoomCode) {
-                  if (payload.new.video_url && payload.new.video_url !== currentVideoJson) applyVideoSources(payload.new.video_url);
-              }
-              if (payload.new.room_code === myRoomCode && !isController) {
-                  adminState = payload.new.playback_state; adminTime = payload.new.position; const newSpeed = payload.new.playback_speed;
-                  if (newSpeed && video.playbackRate !== newSpeed) video.playbackRate = newSpeed;
-                  if (Math.abs(video.currentTime - adminTime) > 0.5) video.currentTime = adminTime;
-                  
-                  if (adminState === 'playing') video.play();
-                  else if (adminState === 'paused') video.pause();
-              }
-          })
-          .subscribe();
+        function initSyncChannel() {
+            if (syncChannel) mySupabase.removeChannel(syncChannel);
+            syncChannel = mySupabase.channel('room-sync-' + Math.random())
+              .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms' }, (payload) => {
+                  if (payload.new.room_code !== myRoomCode) return;
+
+                  if (isController && payload.new.controller_id !== mySessionId) {
+                      isController = false;
+                      alert("Admin privileges were recovered on another device. You are now a Viewer in this room.");
+                      topStatus.innerText = "🔵 Viewer | Room: " + myRoomCode;
+                      topStatus.className = "status-badge viewer";
+                      document.getElementById('localLabel').innerText = "Viewer (You)";
+                      adminVideoPanel.style.display = 'none';
+                      adminRecoveryContainer.style.display = 'none';
+                      
+                      localStorage.setItem('private_theater_session', JSON.stringify({
+                          sessionId: mySessionId,
+                          roomCode: myRoomCode,
+                          role: 'viewer'
+                      }));
+                  }
+
+                  if (payload.new.video_url && payload.new.video_url !== currentVideoJson) {
+                      applyVideoSources(payload.new.video_url);
+                  }
+
+                  if (!isController) {
+                      adminState = payload.new.playback_state; 
+                      adminTime = payload.new.position; 
+                      const newSpeed = payload.new.playback_speed;
+                      if (newSpeed && video.playbackRate !== newSpeed) video.playbackRate = newSpeed;
+                      
+                      if (Math.abs(video.currentTime - adminTime) > 0.5) {
+                          updateVideoStatus("↻ Syncing...", true);
+                          video.currentTime = adminTime;
+                      }
+                      
+                      if (adminState === 'playing') {
+                          if (video.paused) video.play().catch(e => {});
+                      } else if (adminState === 'paused') {
+                          if (!video.paused) video.pause();
+                          updateVideoStatus("Paused by Admin", false);
+                      }
+                  }
+              })
+              .subscribe();
+        }
     </script>
 </body>
 </html>
