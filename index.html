@@ -1049,61 +1049,59 @@
                 await mySupabase.from('rooms').update({ position: video.currentTime }).eq('room_code', myRoomCode);
             }
         }, 60000); 
-// --- UNIFIED KEYBOARD SHORTCUTS ---
+// --- KEYBOARD SHORTCUTS ---
         let lastUsedSpeed = 1.0;
-        window.addEventListener('keydown', (e) => {
-            // 1. Stop rapid-fire toggling if the key is held down for a millisecond too long
-            if (e.repeat) return; 
 
+        window.addEventListener('keydown', (e) => {
+            // 1. Prevent shortcuts from triggering while typing in chat or input fields
             const activeTag = document.activeElement.tagName;
             if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
 
+            // 2. 'N' to open settings (Available to both Admin and Viewer)
             if (e.key.toLowerCase() === 'n') {
-                e.preventDefault(); openDrawer(); return;
+                e.preventDefault();
+                openDrawer();
+                return;
             }
 
+            // 3. Restrict video playback shortcuts to the Admin only
             if (!isController) return; 
 
             switch(e.key.toLowerCase()) {
                 case 'arrowright':
                     e.preventDefault();
-                    seekActiveMedia(getActiveTime() + 10);
+                    video.currentTime += 10;
                     break;
                 case 'arrowleft':
                     e.preventDefault();
-                    seekActiveMedia(Math.max(0, getActiveTime() - 10));
+                    video.currentTime -= 10;
                     break;
-                case ' ':
+                case ' ': // Spacebar
                     e.preventDefault();
-                    // 2. Un-focus buttons so Spacebar doesn't accidentally click them
-                    if (activeTag === 'BUTTON') document.activeElement.blur();
-                    
-                    let isPaused = (activePlayerType === 'youtube' && ytPlayerReady) ? (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) : video.paused;
-                    if (isPaused) playActiveMedia();
-                    else pauseActiveMedia();
+                    if (video.paused) video.play();
+                    else video.pause();
                     break;
                 case 'c':
                     e.preventDefault();
-                    let speedUp = Math.min(2.0, (activePlayerType === 'youtube' && ytPlayerReady ? ytPlayer.getPlaybackRate() : video.playbackRate) + 0.1);
-                    setPlaybackSpeed(Number(speedUp.toFixed(1)));
-                    speedSelect.value = Number(speedUp.toFixed(1)).toString();
+                    let speedUp = Math.min(2.0, video.playbackRate + 0.1);
+                    video.playbackRate = Number(speedUp.toFixed(1));
+                    speedSelect.value = video.playbackRate.toString();
                     break;
                 case 'x':
                     e.preventDefault();
-                    let speedDown = Math.max(0.5, (activePlayerType === 'youtube' && ytPlayerReady ? ytPlayer.getPlaybackRate() : video.playbackRate) - 0.1);
-                    setPlaybackSpeed(Number(speedDown.toFixed(1)));
-                    speedSelect.value = Number(speedDown.toFixed(1)).toString();
+                    let speedDown = Math.max(0.5, video.playbackRate - 0.1);
+                    video.playbackRate = Number(speedDown.toFixed(1));
+                    speedSelect.value = video.playbackRate.toString();
                     break;
                 case 'z':
                     e.preventDefault();
-                    let currentRate = activePlayerType === 'youtube' && ytPlayerReady ? ytPlayer.getPlaybackRate() : video.playbackRate;
-                    if (currentRate !== 1.0) {
-                        lastUsedSpeed = currentRate;
-                        setPlaybackSpeed(1.0);
+                    if (video.playbackRate !== 1.0) {
+                        lastUsedSpeed = video.playbackRate; // Save current speed
+                        video.playbackRate = 1.0;           // Jump to normal
                     } else {
-                        setPlaybackSpeed(lastUsedSpeed);
+                        video.playbackRate = lastUsedSpeed; // Restore previous speed
                     }
-                    speedSelect.value = (activePlayerType === 'youtube' && ytPlayerReady ? ytPlayer.getPlaybackRate() : video.playbackRate).toString();
+                    speedSelect.value = video.playbackRate.toString();
                     break;
             }
         });
