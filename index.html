@@ -57,8 +57,26 @@
 
         .theater { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
         .player-wrapper { width: 100%; flex: 1; min-height: 0; background: #000; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5); position: relative; display: flex; }
-        video#myVideo { width: 100%; height: 100%; object-fit: contain; outline: none; z-index: 1; }
         
+        /* --- CINEMATIC NATIVE VIDEO CONTROLS --- */
+        video#myVideo { width: 100%; height: 100%; object-fit: contain; outline: none; z-index: 1; }
+        video#myVideo::-webkit-media-controls { display: none !important; }
+        .player-wrapper:hover video#myVideo::-webkit-media-controls { display: flex !important; }
+        video#myVideo::-webkit-media-controls-panel {
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 70%, transparent 100%) !important;
+            padding-bottom: 8px;
+            display: flex !important;
+        }
+        video#myVideo::-webkit-media-controls-play-button,
+        video#myVideo::-webkit-media-controls-timeline,
+        video#myVideo::-webkit-media-controls-current-time-display,
+        video#myVideo::-webkit-media-controls-time-remaining-display,
+        video#myVideo::-webkit-media-controls-mute-button,
+        video#myVideo::-webkit-media-controls-volume-slider,
+        video#myVideo::-webkit-media-controls-fullscreen-button {
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+
         video#pinnedVideo { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; z-index: 10; background: #09090b; }
         .unpin-btn { display: none; position: absolute; top: 16px; right: 16px; z-index: 11; padding: 8px 16px; background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; font-weight: 600; cursor: pointer; backdrop-filter: blur(4px); transition: 0.2s; }
         .unpin-btn:hover { background: rgba(0,0,0,0.8); border-color: white; }
@@ -72,38 +90,21 @@
         .playback-info h4 { font-size: 15px; margin-bottom: 2px; }
         .playback-info p { font-size: 12px; color: var(--text-muted); }
         select { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-base); color: var(--text-main); font-size: 14px; font-weight: 600; cursor: pointer; outline: none; }
+        select:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .social-sidebar { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
 
-        /* --- UPDATED: RESIZABLE TILES --- */
-        .cam-box { 
-            width: 100%; aspect-ratio: 16/10; background: #111; border-radius: 14px; border: 1px solid var(--border); position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; 
-            overflow: hidden; 
-            resize: both; 
-            min-height: 80px; 
-            min-width: 120px; 
-            max-width: 100%; 
-        }
+        .cam-box { width: 100%; aspect-ratio: 16/10; background: #111; border-radius: 14px; border: 1px solid var(--border); position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; resize: both; min-height: 80px; min-width: 120px; max-width: 100%; }
         
         .cam-box video { width: 100%; height: 100%; object-fit: cover; }
         #localVideo { transform: scaleX(-1); }
         .cam-label { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); color: white; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 600; backdrop-filter: blur(4px); z-index: 2; pointer-events: none; }
         .cam-placeholder { color: var(--border); font-size: 24px; pointer-events: none; }
 
-        /* --- UPDATED: HOVER/CLICK TO REVEAL CONTROLS --- */
-        .cam-controls-overlay { 
-            position: absolute; bottom: 0; left: 0; right: 0; display: flex; gap: 6px; padding: 8px; background: linear-gradient(0deg, rgba(0,0,0,0.8), transparent); z-index: 3; 
-            opacity: 0; 
-            visibility: hidden; 
-            transition: all 0.2s ease-in-out; 
-        }
+        .cam-controls-overlay { position: absolute; bottom: 0; left: 0; right: 0; display: flex; gap: 6px; padding: 8px; background: linear-gradient(0deg, rgba(0,0,0,0.8), transparent); z-index: 3; opacity: 0; visibility: hidden; transition: all 0.2s ease-in-out; }
         
-        /* Show controls on hover OR when active class is toggled via JS click */
         .cam-box:hover .cam-controls-overlay,
-        .cam-box.active-controls .cam-controls-overlay {
-            opacity: 1; 
-            visibility: visible;
-        }
+        .cam-box.active-controls .cam-controls-overlay { opacity: 1; visibility: visible; }
 
         .cam-ctrl-btn { flex: 1; padding: 7px 4px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.15); background: rgba(24,24,27,0.85); color: var(--text-main); font-size: 11px; font-weight: 600; cursor: pointer; transition: 0.15s; backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; gap: 4px; }
         .cam-ctrl-btn:hover { background: rgba(63,63,70,0.9); }
@@ -115,7 +116,6 @@
         .chat-section { display: flex; flex-direction: column; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; flex: 1; min-height: 0; }
         .chat-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--border); flex-shrink: 0; }
         .chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 10px 10px 0 10px; min-height: 0; }
-
         .chat-messages::-webkit-scrollbar { width: 5px; }
         .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
@@ -228,9 +228,31 @@
                     <p id="videoInfoText">Create or join a room to begin...</p>
                 </div>
                 
-                <div id="qualityContainer" style="display: none; align-items: center; gap: 10px;">
-                    <label for="qualitySelect" style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Quality:</label>
-                    <select id="qualitySelect"></select>
+                <!-- NEW: Unified controls wrapper for Speed and Quality -->
+                <div id="controlsWrapper" style="display: flex; align-items: center; gap: 16px;">
+                    <div id="speedContainer" style="display: none; align-items: center; gap: 8px;">
+                        <label for="speedSelect" style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Speed:</label>
+                        <select id="speedSelect">
+                            <option value="0.5">0.5x</option>
+                            <option value="0.75">0.75x</option>
+                            <option value="1" selected>1.0x</option>
+                            <option value="1.1">1.1x</option>
+                            <option value="1.2">1.2x</option>
+                            <option value="1.25">1.25x</option>
+                            <option value="1.3">1.3x</option>
+                            <option value="1.4">1.4x</option>
+                            <option value="1.5">1.5x</option>
+                            <option value="1.6">1.6x</option>
+                            <option value="1.7">1.7x</option>
+                            <option value="1.8">1.8x</option>
+                            <option value="1.9">1.9x</option>
+                            <option value="2">2.0x</option>
+                        </select>
+                    </div>
+                    <div id="qualityContainer" style="display: none; align-items: center; gap: 8px;">
+                        <label for="qualitySelect" style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Quality:</label>
+                        <select id="qualitySelect"></select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -320,6 +342,8 @@
 
         const qualitySelect = document.getElementById('qualitySelect');
         const qualityContainer = document.getElementById('qualityContainer');
+        const speedSelect = document.getElementById('speedSelect');
+        const speedContainer = document.getElementById('speedContainer');
         const topStatus = document.getElementById('topStatus');
 
         const entryGate = document.getElementById('entryGate');
@@ -341,10 +365,8 @@
         drawerCloseBtn.addEventListener('click', closeDrawer);
         settingsOverlay.addEventListener('click', closeDrawer);
 
-        // --- NEW: TILE CLICK TO SHOW CONTROLS ON MOBILE ---
         document.querySelectorAll('.cam-box').forEach(box => {
             box.addEventListener('click', (e) => {
-                // Prevent toggling if the user is clicking an actual button inside the overlay
                 if (!e.target.closest('.cam-ctrl-btn')) {
                     box.classList.toggle('active-controls');
                 }
@@ -555,8 +577,6 @@
                 }
                 
                 btn.style.display = 'none';
-                
-                // Show controls and active class so user immediately sees them after allowing camera
                 document.getElementById('micBtn').style.display = 'flex';
                 document.getElementById('camBtn').style.display = 'flex';
                 document.getElementById('pinLocalBtn').style.display = 'flex'; 
@@ -611,10 +631,21 @@
                 if (!paused) video.play();
                 
                 qualityContainer.style.display = "flex";
+                speedContainer.style.display = "flex";
                 document.getElementById('videoInfoText').innerText = "Live Stream Active.";
                 document.getElementById('videoInfoText').style.color = "var(--success)";
             }
         }
+
+        // --- NEW: SPEED CONTROL LISTENER ---
+        speedSelect.addEventListener('change', (e) => {
+            if (isController) {
+                video.playbackRate = parseFloat(e.target.value);
+            } else {
+                // Instantly revert if a viewer tries to bypass the disabled state
+                e.target.value = video.playbackRate; 
+            }
+        });
 
         qualitySelect.addEventListener('change', (e) => {
             const time = video.currentTime; const speed = video.playbackRate; const paused = video.paused;
@@ -700,7 +731,10 @@
 
                 if (data.video_url) applyVideoSources(data.video_url);
                 if (data.position) { video.currentTime = data.position; adminTime = data.position; }
-                if (data.playback_speed) video.playbackRate = data.playback_speed;
+                if (data.playback_speed) {
+                    video.playbackRate = data.playback_speed;
+                    speedSelect.value = data.playback_speed;
+                }
                 if (data.playback_state) adminState = data.playback_state;
                 if (adminState === 'playing') video.play();
             } else { 
@@ -763,7 +797,10 @@
 
             if (roomData.video_url) applyVideoSources(roomData.video_url);
             if (roomData.position) { video.currentTime = roomData.position; adminTime = roomData.position; }
-            if (roomData.playback_speed) video.playbackRate = roomData.playback_speed;
+            if (roomData.playback_speed) {
+                video.playbackRate = roomData.playback_speed;
+                speedSelect.value = roomData.playback_speed;
+            }
             if (roomData.playback_state) adminState = roomData.playback_state;
             if (adminState === 'playing') video.play();
 
@@ -776,6 +813,9 @@
             topStatus.className = "status-badge " + (asAdmin ? "admin" : "viewer");
             document.getElementById('localLabel').innerText = (asAdmin ? "Admin" : "Viewer") + " (You)";
             
+            // Disable the speed select dropdown for Viewers so only Admin can change it
+            speedSelect.disabled = !asAdmin;
+
             initRTCChannel();
             initSyncChannel();
             dismissGate();
@@ -826,6 +866,9 @@
             video.pause();
             video.src = "";
             qualityContainer.style.display = 'none';
+            speedContainer.style.display = 'none';
+            speedSelect.value = '1';
+            
             document.getElementById('videoInfoText').innerText = "Create or join a room below to begin...";
             document.getElementById('videoInfoText').style.color = "var(--text-muted)";
             videoStatusOverlay.style.display = 'none';
@@ -884,7 +927,10 @@
 
                 if (roomData.video_url) applyVideoSources(roomData.video_url);
                 if (roomData.position) { video.currentTime = roomData.position; adminTime = roomData.position; }
-                if (roomData.playback_speed) video.playbackRate = roomData.playback_speed;
+                if (roomData.playback_speed) {
+                    video.playbackRate = roomData.playback_speed;
+                    speedSelect.value = roomData.playback_speed;
+                }
                 if (roomData.playback_state) adminState = roomData.playback_state;
                 if (adminState === 'playing') video.play();
 
@@ -932,7 +978,7 @@
             if (isController && myRoomCode) {
                 await mySupabase.from('rooms').update({ position: video.currentTime }).eq('room_code', myRoomCode); 
             } else if (!isController) { 
-                if (Math.abs(video.currentTime - adminTime) > 1.5) {
+                if (Math.abs(video.currentTime - adminTime) > 2.0) {
                     updateVideoStatus("↻ Syncing...", true);
                     video.currentTime = adminTime;
                 } 
@@ -975,9 +1021,14 @@
                       adminState = payload.new.playback_state; 
                       adminTime = payload.new.position; 
                       const newSpeed = payload.new.playback_speed;
-                      if (newSpeed && video.playbackRate !== newSpeed) video.playbackRate = newSpeed;
                       
-                      if (Math.abs(video.currentTime - adminTime) > 0.5) {
+                      // Sync Speed and update dropdown UI for viewer
+                      if (newSpeed && video.playbackRate !== newSpeed) {
+                          video.playbackRate = newSpeed;
+                          speedSelect.value = newSpeed;
+                      }
+                      
+                      if (Math.abs(video.currentTime - adminTime) > 2.0) {
                           updateVideoStatus("↻ Syncing...", true);
                           video.currentTime = adminTime;
                       }
@@ -992,6 +1043,12 @@
               })
               .subscribe();
         }
+
+        setInterval(async () => {
+            if (isController && myRoomCode && !video.paused) {
+                await mySupabase.from('rooms').update({ position: video.currentTime }).eq('room_code', myRoomCode);
+            }
+        }, 60000); 
     </script>
 </body>
 </html>
