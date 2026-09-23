@@ -7,6 +7,7 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
 
     <style>
         :root {
@@ -56,9 +57,9 @@
         .main-stage { display: flex; flex: 1; min-height: 0; max-width: 1600px; margin: 0 auto; width: 100%; padding: 16px 24px; gap: 16px; align-items: stretch; }
 
         .theater { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
-        .player-wrapper { width: 100%; flex: 1; min-height: 0; background: #000; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5); position: relative; display: flex; }
+        .player-wrapper { width: 100%; flex: 1; min-height: 0; background: #000; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5); position: relative; display: flex; justify-content: center; align-items: center; }
         
-        /* --- CINEMATIC NATIVE VIDEO CONTROLS --- */
+        /* --- NATIVE VIDEO CONTROLS --- */
         video#myVideo { width: 100%; height: 100%; object-fit: contain; outline: none; z-index: 1; }
         video#myVideo::-webkit-media-controls { display: none !important; }
         .player-wrapper:hover video#myVideo::-webkit-media-controls { display: flex !important; }
@@ -76,6 +77,10 @@
         video#myVideo::-webkit-media-controls-fullscreen-button {
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
         }
+
+        /* --- YOUTUBE WRAPPER --- */
+        #ytPlayerWrapper { display: none; width: 100%; height: 100%; z-index: 1; }
+        #ytPlayerContainer { width: 100%; height: 100%; border: none; }
 
         video#pinnedVideo { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; z-index: 10; background: #09090b; }
         .unpin-btn { display: none; position: absolute; top: 16px; right: 16px; z-index: 11; padding: 8px 16px; background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; font-weight: 600; cursor: pointer; backdrop-filter: blur(4px); transition: 0.2s; }
@@ -214,6 +219,12 @@
         <div class="theater">
             <div class="player-wrapper">
                 <video id="myVideo" preload="auto"></video>
+                
+                <!-- NEW: YouTube Player Container -->
+                <div id="ytPlayerWrapper">
+                    <div id="ytPlayerContainer"></div>
+                </div>
+
                 <video id="pinnedVideo" autoplay playsinline muted></video>
                 <button class="unpin-btn" id="unpinBtn">❌ Close Pin</button>
                 <div id="videoStatusOverlay">
@@ -228,7 +239,6 @@
                     <p id="videoInfoText">Create or join a room to begin...</p>
                 </div>
                 
-                <!-- NEW: Unified controls wrapper for Speed and Quality -->
                 <div id="controlsWrapper" style="display: flex; align-items: center; gap: 16px;">
                     <div id="speedContainer" style="display: none; align-items: center; gap: 8px;">
                         <label for="speedSelect" style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Speed:</label>
@@ -317,11 +327,28 @@
 
             <div id="adminVideoPanel" style="display:none;">
                 <div class="drawer-section-title">Host Controls</div>
-                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;">Paste the <b>Dropbox Link</b> or <b>Cloudflare R2 Link</b> below.</p>
-                <input type="text" id="url720" class="link-input" placeholder="720p Link">
-                <input type="text" id="url480" class="link-input" placeholder="480p Link (Optional)">
-                <input type="text" id="url360" class="link-input" placeholder="360p Link (Optional)">
-                <button class="btn btn-primary" id="broadcastBtn" style="background: #db2777;">Broadcast to Room</button>
+                
+                <!-- NEW: Source Toggle -->
+                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                    <button class="btn btn-secondary" id="tabDirect" style="flex: 1; border-color: var(--brand);">Direct Video</button>
+                    <button class="btn btn-secondary" id="tabYoutube" style="flex: 1;">YouTube</button>
+                </div>
+
+                <!-- Direct Video Panel -->
+                <div id="panelDirect">
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;">Paste the <b>Dropbox Link</b> or <b>Cloudflare R2 Link</b> below.</p>
+                    <input type="text" id="url720" class="link-input" placeholder="720p Link">
+                    <input type="text" id="url480" class="link-input" placeholder="480p Link (Optional)">
+                    <input type="text" id="url360" class="link-input" placeholder="360p Link (Optional)">
+                    <button class="btn btn-primary" id="broadcastBtn" style="background: #db2777;">Broadcast Direct Video</button>
+                </div>
+
+                <!-- YouTube Panel -->
+                <div id="panelYoutube" style="display: none;">
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;">Paste a <b>YouTube</b> video link below.</p>
+                    <input type="text" id="ytUrlInput" class="link-input" placeholder="https://www.youtube.com/watch?v=...">
+                    <button class="btn btn-primary" id="broadcastYtBtn" style="background: #ef4444;">Broadcast YouTube</button>
+                </div>
             </div>
         </div>
     </div>
@@ -332,6 +359,7 @@
         const mySupabase = supabase.createClient(supabaseUrl, supabaseKey);
         
         const video = document.getElementById('myVideo');
+        const ytPlayerWrapper = document.getElementById('ytPlayerWrapper');
         const pinnedVideo = document.getElementById('pinnedVideo');
         const unpinBtn = document.getElementById('unpinBtn');
         const localVideo = document.getElementById('localVideo');
@@ -358,6 +386,26 @@
         const adminRecoveryContainer = document.getElementById('adminRecoveryContainer');
         const recoveryKeyBox = document.getElementById('recoveryKeyBox');
         const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+
+        // Setup Tabs
+        const tabDirect = document.getElementById('tabDirect');
+        const tabYoutube = document.getElementById('tabYoutube');
+        const panelDirect = document.getElementById('panelDirect');
+        const panelYoutube = document.getElementById('panelYoutube');
+
+        tabDirect.addEventListener('click', () => {
+            tabDirect.style.borderColor = 'var(--brand)';
+            tabYoutube.style.borderColor = 'transparent';
+            panelDirect.style.display = 'block';
+            panelYoutube.style.display = 'none';
+        });
+
+        tabYoutube.addEventListener('click', () => {
+            tabYoutube.style.borderColor = 'var(--brand)';
+            tabDirect.style.borderColor = 'transparent';
+            panelYoutube.style.display = 'block';
+            panelDirect.style.display = 'none';
+        });
 
         function openDrawer() { settingsDrawer.classList.add('open'); settingsOverlay.classList.add('open'); }
         function closeDrawer() { settingsDrawer.classList.remove('open'); settingsOverlay.classList.remove('open'); }
@@ -389,6 +437,81 @@
         let viewerReady = false;
         const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
+        // --- NEW: YOUTUBE API SETUP ---
+        let ytPlayer;
+        let ytPlayerReady = false;
+        let activePlayerType = 'none'; // 'direct' | 'youtube' | 'none'
+
+        window.onYouTubeIframeAPIReady = function() {
+            ytPlayer = new YT.Player('ytPlayerContainer', {
+                height: '100%',
+                width: '100%',
+                videoId: '',
+                playerVars: {
+                    'autoplay': 0, 'controls': 1, 'rel': 0, 'modestbranding': 1, 'disablekb': 1
+                },
+                events: {
+                    'onReady': () => { ytPlayerReady = true; },
+                    'onStateChange': onYtPlayerStateChange,
+                    'onError': () => { if (myRoomCode && activePlayerType === 'youtube') updateVideoStatus("This YouTube video cannot be embedded.", false); }
+                }
+            });
+        };
+
+        function onYtPlayerStateChange(event) {
+            if (!myRoomCode || activePlayerType !== 'youtube') return;
+            
+            if (event.data === YT.PlayerState.PLAYING) {
+                if (isController) {
+                    mySupabase.from('rooms').update({ playback_state: 'playing', position: ytPlayer.getCurrentTime() }).eq('room_code', myRoomCode);
+                } else if (adminState === 'paused') {
+                    ytPlayer.pauseVideo();
+                    updateVideoStatus("Paused by Admin", false);
+                } else {
+                    updateVideoStatus("Synced", false, 2000);
+                }
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                if (isController) {
+                    mySupabase.from('rooms').update({ playback_state: 'paused', position: ytPlayer.getCurrentTime() }).eq('room_code', myRoomCode);
+                } else if (adminState === 'playing') {
+                    ytPlayer.playVideo();
+                }
+            } else if (event.data === YT.PlayerState.BUFFERING) {
+                if (!isController && adminState === 'paused') {
+                    updateVideoStatus("Paused by Admin", false);
+                } else {
+                    updateVideoStatus("Buffering...", true);
+                }
+            }
+        }
+
+        // --- UNIFIED MEDIA CONTROLS ---
+        function getActiveTime() {
+            if (activePlayerType === 'youtube' && ytPlayerReady && ytPlayer.getCurrentTime) return ytPlayer.getCurrentTime() || 0;
+            if (activePlayerType === 'direct') return video.currentTime;
+            return 0;
+        }
+
+        function seekActiveMedia(time) {
+            if (activePlayerType === 'youtube' && ytPlayerReady) ytPlayer.seekTo(time, true);
+            else if (activePlayerType === 'direct') video.currentTime = time;
+        }
+
+        function playActiveMedia() {
+            if (activePlayerType === 'youtube' && ytPlayerReady) ytPlayer.playVideo();
+            else if (activePlayerType === 'direct') video.play().catch(e => {});
+        }
+
+        function pauseActiveMedia() {
+            if (activePlayerType === 'youtube' && ytPlayerReady) ytPlayer.pauseVideo();
+            else if (activePlayerType === 'direct') video.pause();
+        }
+
+        function setPlaybackSpeed(speed) {
+            if (activePlayerType === 'youtube' && ytPlayerReady && ytPlayer.setPlaybackRate) ytPlayer.setPlaybackRate(speed);
+            else if (activePlayerType === 'direct') video.playbackRate = speed;
+        }
+
         function dismissGate() { entryGate.style.display = 'none'; }
 
         let statusHideTimeout;
@@ -399,17 +522,13 @@
             }
             videoStatusOverlay.style.display = 'flex';
             statusText.innerText = text;
-            if (isPulsing) {
-                statusDot.classList.add('pulsing');
-            } else {
-                statusDot.classList.remove('pulsing');
-            }
+            if (isPulsing) statusDot.classList.add('pulsing');
+            else statusDot.classList.remove('pulsing');
+            
             if (showDuration > 0) {
                 clearTimeout(statusHideTimeout);
                 statusHideTimeout = setTimeout(() => {
-                    if (statusText.innerText === text) {
-                        videoStatusOverlay.style.display = 'none';
-                    }
+                    if (statusText.innerText === text) videoStatusOverlay.style.display = 'none';
                 }, showDuration);
             }
         }
@@ -471,7 +590,6 @@
             
             rtcChannel.on('broadcast', { event: 'signal' }, async (payload) => {
                 const data = payload.payload;
-                
                 if (data.type === 'ready') {
                     if (isController) {
                         viewerReady = true;
@@ -520,10 +638,8 @@
         function sendChatMessage() {
             const text = chatInput.value.trim();
             if(!text || !rtcChannel) return;
-            
             const senderName = isController ? 'Admin' : 'Viewer';
             rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'chat', sender: senderName, text: text } });
-            
             appendMessage('You', text, true); 
             chatInput.value = '';
             chatInput.focus();
@@ -533,13 +649,9 @@
         chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChatMessage(); });
 
         function createPeerConnection() {
-            if (peerConnection) {
-                peerConnection.close();
-            }
+            if (peerConnection) peerConnection.close();
             peerConnection = new RTCPeerConnection(rtcConfig);
-            if (localStream) {
-                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-            }
+            if (localStream) localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
             
             peerConnection.ontrack = (event) => {
                 document.getElementById('remoteVideo').srcObject = event.streams[0];
@@ -608,56 +720,86 @@
             }
         });
 
+        // --- NEW: UNIFIED APPLY SOURCES ---
         function applyVideoSources(jsonString) {
             if (!jsonString || jsonString === currentVideoJson) return; 
             currentVideoJson = jsonString;
             
-            const urls = JSON.parse(jsonString);
-            qualitySelect.innerHTML = ""; 
-            let firstAvailableUrl = "";
+            let data;
+            try { data = JSON.parse(jsonString); } catch(e) { return; }
             
-            ['720p', '480p', '360p'].forEach(q => {
-                if (urls[q]) {
-                    const opt = document.createElement('option'); opt.value = urls[q]; opt.text = q;
-                    qualitySelect.appendChild(opt);
-                    if (!firstAvailableUrl) firstAvailableUrl = urls[q];
-                }
-            });
+            // Backward compatibility for old direct links format
+            const sourceType = data.type || 'direct';
 
-            if (firstAvailableUrl) {
-                updateVideoStatus("Loading video...", true);
-                const time = video.currentTime; const speed = video.playbackRate; const paused = video.paused;
-                video.src = firstAvailableUrl; video.currentTime = time; video.playbackRate = speed;
-                if (!paused) video.play();
+            if (sourceType === 'youtube') {
+                activePlayerType = 'youtube';
+                video.style.display = 'none';
+                ytPlayerWrapper.style.display = 'block';
+                qualityContainer.style.display = 'none';
                 
-                qualityContainer.style.display = "flex";
-                speedContainer.style.display = "flex";
-                document.getElementById('videoInfoText').innerText = "Live Stream Active.";
-                document.getElementById('videoInfoText').style.color = "var(--success)";
+                if (ytPlayerReady) {
+                    ytPlayer.loadVideoById(data.videoId);
+                    updateVideoStatus("Loading YouTube video...", true, 2000);
+                    document.getElementById('videoInfoText').innerText = "YouTube Stream Active.";
+                    document.getElementById('videoInfoText').style.color = "var(--success)";
+                    speedContainer.style.display = "flex";
+                } else {
+                    // Retry slightly later if API hasn't loaded yet
+                    setTimeout(() => applyVideoSources(jsonString), 500);
+                }
+            } else {
+                activePlayerType = 'direct';
+                video.style.display = 'block';
+                ytPlayerWrapper.style.display = 'none';
+                
+                const urls = data.urls || data; // supports old and new DB format
+                qualitySelect.innerHTML = ""; 
+                let firstAvailableUrl = "";
+                
+                ['720p', '480p', '360p'].forEach(q => {
+                    if (urls[q]) {
+                        const opt = document.createElement('option'); opt.value = urls[q]; opt.text = q;
+                        qualitySelect.appendChild(opt);
+                        if (!firstAvailableUrl) firstAvailableUrl = urls[q];
+                    }
+                });
+
+                if (firstAvailableUrl) {
+                    updateVideoStatus("Loading video...", true);
+                    const time = video.currentTime; const speed = video.playbackRate; const paused = video.paused;
+                    video.src = firstAvailableUrl; video.currentTime = time; video.playbackRate = speed;
+                    if (!paused) video.play();
+                    
+                    qualityContainer.style.display = "flex";
+                    speedContainer.style.display = "flex";
+                    document.getElementById('videoInfoText').innerText = "Live Stream Active.";
+                    document.getElementById('videoInfoText').style.color = "var(--success)";
+                }
             }
         }
 
-        // --- NEW: SPEED CONTROL LISTENER ---
         speedSelect.addEventListener('change', (e) => {
             if (isController) {
-                video.playbackRate = parseFloat(e.target.value);
+                setPlaybackSpeed(parseFloat(e.target.value));
             } else {
                 // Instantly revert if a viewer tries to bypass the disabled state
-                e.target.value = video.playbackRate; 
+                e.target.value = activePlayerType === 'youtube' && ytPlayerReady ? ytPlayer.getPlaybackRate() : video.playbackRate; 
             }
         });
 
         qualitySelect.addEventListener('change', (e) => {
+            if (activePlayerType !== 'direct') return;
             const time = video.currentTime; const speed = video.playbackRate; const paused = video.paused;
             video.src = e.target.value; video.currentTime = time; video.playbackRate = speed;
             if (!paused) video.play();
         });
 
-        video.addEventListener('loadstart', () => { if (myRoomCode) updateVideoStatus("Loading video...", true); });
-        video.addEventListener('loadedmetadata', () => { if (myRoomCode) updateVideoStatus("Synced", false, 2500); });
-        video.addEventListener('canplay', () => { if (myRoomCode) updateVideoStatus("Synced", false, 2500); });
+        // HTML5 Video Listeners (Only act if direct)
+        video.addEventListener('loadstart', () => { if (myRoomCode && activePlayerType === 'direct') updateVideoStatus("Loading video...", true); });
+        video.addEventListener('loadedmetadata', () => { if (myRoomCode && activePlayerType === 'direct') updateVideoStatus("Synced", false, 2500); });
+        video.addEventListener('canplay', () => { if (myRoomCode && activePlayerType === 'direct') updateVideoStatus("Synced", false, 2500); });
         video.addEventListener('playing', () => { 
-            if (myRoomCode) {
+            if (myRoomCode && activePlayerType === 'direct') {
                 if (!isController && adminState === 'paused') {
                     video.pause();
                     updateVideoStatus("Paused by Admin", false);
@@ -667,16 +809,51 @@
             }
         });
         video.addEventListener('waiting', () => { 
-            if (myRoomCode) {
-                if (adminState === 'paused') {
-                    updateVideoStatus("Paused by Admin", false);
-                } else {
-                    updateVideoStatus("Buffering...", true);
-                }
+            if (myRoomCode && activePlayerType === 'direct') {
+                if (adminState === 'paused') updateVideoStatus("Paused by Admin", false);
+                else updateVideoStatus("Buffering...", true);
             }
         });
-        video.addEventListener('stalled', () => { if (myRoomCode) updateVideoStatus("Connection unstable", true); });
-        video.addEventListener('error', () => { if (myRoomCode) updateVideoStatus("Unable to load video", false); });
+        video.addEventListener('stalled', () => { if (myRoomCode && activePlayerType === 'direct') updateVideoStatus("Connection unstable", true); });
+        video.addEventListener('error', () => { if (myRoomCode && activePlayerType === 'direct') updateVideoStatus("Unable to load video", false); });
+
+        video.addEventListener('play', async () => { 
+            if (activePlayerType !== 'direct') return;
+            if (isController && myRoomCode) {
+                await mySupabase.from('rooms').update({ playback_state: 'playing', position: video.currentTime }).eq('room_code', myRoomCode); 
+            } else if (!isController && adminState === 'paused') {
+                video.pause(); 
+                updateVideoStatus("Paused by Admin", false);
+            } 
+        });
+        
+        video.addEventListener('pause', async () => { 
+            if (activePlayerType !== 'direct') return;
+            if (isController && myRoomCode) {
+                await mySupabase.from('rooms').update({ playback_state: 'paused', position: video.currentTime }).eq('room_code', myRoomCode); 
+            } else if (!isController && adminState === 'playing') {
+                video.play();
+            }
+        });
+        
+        video.addEventListener('seeked', async () => { 
+            if (activePlayerType !== 'direct') return;
+            if (isController && myRoomCode) {
+                await mySupabase.from('rooms').update({ position: video.currentTime }).eq('room_code', myRoomCode); 
+            } else if (!isController) { 
+                if (Math.abs(video.currentTime - adminTime) > 2.0) {
+                    updateVideoStatus("↻ Syncing...", true);
+                    video.currentTime = adminTime;
+                } 
+            }
+        });
+        
+        video.addEventListener('ratechange', async () => { 
+            if (activePlayerType !== 'direct') return;
+            if (isController && myRoomCode) {
+                await mySupabase.from('rooms').update({ playback_speed: video.playbackRate }).eq('room_code', myRoomCode); 
+            } 
+        });
 
         document.getElementById('createBtn').addEventListener('click', async () => {
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -730,13 +907,13 @@
                 setupActiveRoomUI(false, myRoomCode, "");
 
                 if (data.video_url) applyVideoSources(data.video_url);
-                if (data.position) { video.currentTime = data.position; adminTime = data.position; }
+                if (data.position) { seekActiveMedia(data.position); adminTime = data.position; }
                 if (data.playback_speed) {
-                    video.playbackRate = data.playback_speed;
+                    setPlaybackSpeed(data.playback_speed);
                     speedSelect.value = data.playback_speed;
                 }
                 if (data.playback_state) adminState = data.playback_state;
-                if (adminState === 'playing') video.play();
+                if (adminState === 'playing') playActiveMedia();
             } else { 
                 alert("Please enter a valid 6-digit room code."); 
             }
@@ -744,10 +921,7 @@
 
         document.getElementById('recoverAdminBtn').addEventListener('click', async () => {
             const keyInput = document.getElementById('recoveryInput').value.trim();
-            if (!keyInput) {
-                alert("Please enter a valid recovery key.");
-                return;
-            }
+            if (!keyInput) { alert("Please enter a valid recovery key."); return; }
 
             let targetRoomCode = "";
             for (let i = 0; i < localStorage.length; i++) {
@@ -758,29 +932,14 @@
                 }
             }
 
-            if (!targetRoomCode) {
-                targetRoomCode = prompt("Enter the 6-digit room code associated with this recovery key:");
-            }
-
-            if (!targetRoomCode || targetRoomCode.length !== 6) {
-                alert("Invalid recovery details.");
-                return;
-            }
+            if (!targetRoomCode) targetRoomCode = prompt("Enter the 6-digit room code associated with this recovery key:");
+            if (!targetRoomCode || targetRoomCode.length !== 6) { alert("Invalid recovery details."); return; }
 
             const { data: roomData, error } = await mySupabase.from('rooms').select('*').eq('room_code', targetRoomCode).single();
-            if (error || !roomData) {
-                alert("Room not found.");
-                return;
-            }
+            if (error || !roomData) { alert("Room not found."); return; }
 
-            const { error: updateErr } = await mySupabase.from('rooms')
-                .update({ controller_id: mySessionId })
-                .eq('room_code', targetRoomCode);
-
-            if (updateErr) {
-                alert("Failed to recover admin status: " + updateErr.message);
-                return;
-            }
+            const { error: updateErr } = await mySupabase.from('rooms').update({ controller_id: mySessionId }).eq('room_code', targetRoomCode);
+            if (updateErr) { alert("Failed to recover admin status: " + updateErr.message); return; }
 
             myRoomCode = targetRoomCode;
             isController = true;
@@ -796,13 +955,13 @@
             setupActiveRoomUI(true, myRoomCode, myRecoveryKey);
 
             if (roomData.video_url) applyVideoSources(roomData.video_url);
-            if (roomData.position) { video.currentTime = roomData.position; adminTime = roomData.position; }
+            if (roomData.position) { seekActiveMedia(roomData.position); adminTime = roomData.position; }
             if (roomData.playback_speed) {
-                video.playbackRate = roomData.playback_speed;
+                setPlaybackSpeed(roomData.playback_speed);
                 speedSelect.value = roomData.playback_speed;
             }
             if (roomData.playback_state) adminState = roomData.playback_state;
-            if (adminState === 'playing') video.play();
+            if (adminState === 'playing') playActiveMedia();
 
             alert("Admin privileges successfully recovered!");
         });
@@ -813,7 +972,6 @@
             topStatus.className = "status-badge " + (asAdmin ? "admin" : "viewer");
             document.getElementById('localLabel').innerText = (asAdmin ? "Admin" : "Viewer") + " (You)";
             
-            // Disable the speed select dropdown for Viewers so only Admin can change it
             speedSelect.disabled = !asAdmin;
 
             initRTCChannel();
@@ -865,6 +1023,11 @@
 
             video.pause();
             video.src = "";
+            if (ytPlayerReady && activePlayerType === 'youtube') ytPlayer.stopVideo();
+            activePlayerType = 'none';
+            video.style.display = 'block';
+            ytPlayerWrapper.style.display = 'none';
+            
             qualityContainer.style.display = 'none';
             speedContainer.style.display = 'none';
             speedSelect.value = '1';
@@ -926,13 +1089,13 @@
                 setupActiveRoomUI(isController, myRoomCode, myRecoveryKey);
 
                 if (roomData.video_url) applyVideoSources(roomData.video_url);
-                if (roomData.position) { video.currentTime = roomData.position; adminTime = roomData.position; }
+                if (roomData.position) { seekActiveMedia(roomData.position); adminTime = roomData.position; }
                 if (roomData.playback_speed) {
-                    video.playbackRate = roomData.playback_speed;
+                    setPlaybackSpeed(roomData.playback_speed);
                     speedSelect.value = roomData.playback_speed;
                 }
                 if (roomData.playback_state) adminState = roomData.playback_state;
-                if (adminState === 'playing') video.play();
+                if (adminState === 'playing') playActiveMedia();
 
             } catch(e) {
                 console.error("Session restoration error:", e);
@@ -940,6 +1103,29 @@
             }
         });
 
+        // --- NEW: YOUTUBE BROADCAST ---
+        function extractYtId(url) {
+            const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+            return match ? match[1] : null;
+        }
+
+        document.getElementById('broadcastYtBtn').addEventListener('click', async () => {
+            const url = document.getElementById('ytUrlInput').value.trim();
+            const videoId = extractYtId(url);
+            if (!videoId) return alert("Invalid YouTube URL.");
+            
+            const btn = document.getElementById('broadcastYtBtn'); 
+            btn.innerText = "Broadcasting...";
+            
+            const payload = { type: 'youtube', videoId: videoId };
+            const jsonStr = JSON.stringify(payload);
+            
+            await mySupabase.from('rooms').update({ video_url: jsonStr }).eq('room_code', myRoomCode);
+            applyVideoSources(jsonStr);
+            setTimeout(() => { btn.innerText = "Broadcast YouTube"; closeDrawer(); }, 800);
+        });
+
+        // --- EXISTING: DIRECT VIDEO BROADCAST ---
         document.getElementById('broadcastBtn').addEventListener('click', async () => {
             const urls = {};
             const u720 = parseDriveUrl(document.getElementById('url720').value);
@@ -951,44 +1137,12 @@
             
             const btn = document.getElementById('broadcastBtn'); btn.innerText = "Broadcasting...";
             
-            const jsonStr = JSON.stringify(urls);
+            const payload = { type: 'direct', urls: urls };
+            const jsonStr = JSON.stringify(payload);
+            
             await mySupabase.from('rooms').update({ video_url: jsonStr }).eq('room_code', myRoomCode);
             applyVideoSources(jsonStr);
             setTimeout(() => { btn.innerText = "Broadcast to Room"; closeDrawer(); }, 800);
-        });
-
-        video.addEventListener('play', async () => { 
-            if (isController && myRoomCode) {
-                await mySupabase.from('rooms').update({ playback_state: 'playing', position: video.currentTime }).eq('room_code', myRoomCode); 
-            } else if (!isController && adminState === 'paused') {
-                video.pause(); 
-                updateVideoStatus("Paused by Admin", false);
-            } 
-        });
-        
-        video.addEventListener('pause', async () => { 
-            if (isController && myRoomCode) {
-                await mySupabase.from('rooms').update({ playback_state: 'paused', position: video.currentTime }).eq('room_code', myRoomCode); 
-            } else if (!isController && adminState === 'playing') {
-                video.play();
-            }
-        });
-        
-        video.addEventListener('seeked', async () => { 
-            if (isController && myRoomCode) {
-                await mySupabase.from('rooms').update({ position: video.currentTime }).eq('room_code', myRoomCode); 
-            } else if (!isController) { 
-                if (Math.abs(video.currentTime - adminTime) > 2.0) {
-                    updateVideoStatus("↻ Syncing...", true);
-                    video.currentTime = adminTime;
-                } 
-            }
-        });
-        
-        video.addEventListener('ratechange', async () => { 
-            if (isController && myRoomCode) {
-                await mySupabase.from('rooms').update({ playback_speed: video.playbackRate }).eq('room_code', myRoomCode); 
-            } 
         });
 
         function initSyncChannel() {
@@ -1022,21 +1176,22 @@
                       adminTime = payload.new.position; 
                       const newSpeed = payload.new.playback_speed;
                       
-                      // Sync Speed and update dropdown UI for viewer
-                      if (newSpeed && video.playbackRate !== newSpeed) {
-                          video.playbackRate = newSpeed;
+                      if (newSpeed) {
+                          setPlaybackSpeed(newSpeed);
                           speedSelect.value = newSpeed;
                       }
                       
-                      if (Math.abs(video.currentTime - adminTime) > 2.0) {
+                      if (Math.abs(getActiveTime() - adminTime) > 2.0) {
                           updateVideoStatus("↻ Syncing...", true);
-                          video.currentTime = adminTime;
+                          seekActiveMedia(adminTime);
                       }
                       
                       if (adminState === 'playing') {
-                          if (video.paused) video.play().catch(e => {});
+                          let isPaused = (activePlayerType === 'youtube' && ytPlayerReady) ? (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) : video.paused;
+                          if (isPaused) playActiveMedia();
                       } else if (adminState === 'paused') {
-                          if (!video.paused) video.pause();
+                          let isPaused = (activePlayerType === 'youtube' && ytPlayerReady) ? (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) : video.paused;
+                          if (!isPaused) pauseActiveMedia();
                           updateVideoStatus("Paused by Admin", false);
                       }
                   }
@@ -1044,64 +1199,78 @@
               .subscribe();
         }
 
+        // --- UNIFIED ADMIN TRACKING & AUTOSAVE ---
+        let lastAdminTime = 0;
+        setInterval(() => {
+            if (isController && myRoomCode) {
+                const currTime = getActiveTime();
+                
+                // Track manual seeks in YT (Since YT lacks a pure 'seeked' event)
+                if (Math.abs(currTime - lastAdminTime) > 2.0 && activePlayerType === 'youtube') {
+                    mySupabase.from('rooms').update({ position: currTime }).eq('room_code', myRoomCode);
+                }
+                lastAdminTime = currTime;
+            }
+        }, 1000);
+
         setInterval(async () => {
-            if (isController && myRoomCode && !video.paused) {
-                await mySupabase.from('rooms').update({ position: video.currentTime }).eq('room_code', myRoomCode);
+            if (isController && myRoomCode) {
+                let isPaused = (activePlayerType === 'youtube' && ytPlayerReady) ? (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) : video.paused;
+                if (!isPaused) {
+                    await mySupabase.from('rooms').update({ position: getActiveTime() }).eq('room_code', myRoomCode);
+                }
             }
         }, 60000); 
-// --- KEYBOARD SHORTCUTS ---
-        let lastUsedSpeed = 1.0;
 
+        // --- UNIFIED KEYBOARD SHORTCUTS ---
+        let lastUsedSpeed = 1.0;
         window.addEventListener('keydown', (e) => {
-            // 1. Prevent shortcuts from triggering while typing in chat or input fields
             const activeTag = document.activeElement.tagName;
             if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
 
-            // 2. 'N' to open settings (Available to both Admin and Viewer)
             if (e.key.toLowerCase() === 'n') {
-                e.preventDefault();
-                openDrawer();
-                return;
+                e.preventDefault(); openDrawer(); return;
             }
 
-            // 3. Restrict video playback shortcuts to the Admin only
             if (!isController) return; 
 
             switch(e.key.toLowerCase()) {
                 case 'arrowright':
                     e.preventDefault();
-                    video.currentTime += 10;
+                    seekActiveMedia(getActiveTime() + 10);
                     break;
                 case 'arrowleft':
                     e.preventDefault();
-                    video.currentTime -= 10;
+                    seekActiveMedia(Math.max(0, getActiveTime() - 10));
                     break;
-                case ' ': // Spacebar
+                case ' ':
                     e.preventDefault();
-                    if (video.paused) video.play();
-                    else video.pause();
+                    let isPaused = (activePlayerType === 'youtube' && ytPlayerReady) ? (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) : video.paused;
+                    if (isPaused) playActiveMedia();
+                    else pauseActiveMedia();
                     break;
                 case 'c':
                     e.preventDefault();
-                    let speedUp = Math.min(2.0, video.playbackRate + 0.1);
-                    video.playbackRate = Number(speedUp.toFixed(1));
-                    speedSelect.value = video.playbackRate.toString();
+                    let speedUp = Math.min(2.0, (activePlayerType === 'youtube' && ytPlayerReady ? ytPlayer.getPlaybackRate() : video.playbackRate) + 0.1);
+                    setPlaybackSpeed(Number(speedUp.toFixed(1)));
+                    speedSelect.value = Number(speedUp.toFixed(1)).toString();
                     break;
                 case 'x':
                     e.preventDefault();
-                    let speedDown = Math.max(0.5, video.playbackRate - 0.1);
-                    video.playbackRate = Number(speedDown.toFixed(1));
-                    speedSelect.value = video.playbackRate.toString();
+                    let speedDown = Math.max(0.5, (activePlayerType === 'youtube' && ytPlayerReady ? ytPlayer.getPlaybackRate() : video.playbackRate) - 0.1);
+                    setPlaybackSpeed(Number(speedDown.toFixed(1)));
+                    speedSelect.value = Number(speedDown.toFixed(1)).toString();
                     break;
                 case 'z':
                     e.preventDefault();
-                    if (video.playbackRate !== 1.0) {
-                        lastUsedSpeed = video.playbackRate; // Save current speed
-                        video.playbackRate = 1.0;           // Jump to normal
+                    let currentRate = activePlayerType === 'youtube' && ytPlayerReady ? ytPlayer.getPlaybackRate() : video.playbackRate;
+                    if (currentRate !== 1.0) {
+                        lastUsedSpeed = currentRate;
+                        setPlaybackSpeed(1.0);
                     } else {
-                        video.playbackRate = lastUsedSpeed; // Restore previous speed
+                        setPlaybackSpeed(lastUsedSpeed);
                     }
-                    speedSelect.value = video.playbackRate.toString();
+                    speedSelect.value = (activePlayerType === 'youtube' && ytPlayerReady ? ytPlayer.getPlaybackRate() : video.playbackRate).toString();
                     break;
             }
         });
