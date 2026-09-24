@@ -64,30 +64,89 @@
         .player-wrapper { width: 100%; flex: 1; min-height: 0; background: #000; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5); position: relative; display: flex; justify-content: center; align-items: center; }
         
         /* --- EMBEDDED SEEK BUTTONS --- */
-        .seek-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0, 0, 0, 0.65); color: white; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 30px; padding: 12px 18px; font-size: 13px; font-weight: 700; cursor: pointer; backdrop-filter: blur(6px); z-index: 15; opacity: 0; visibility: hidden; transition: 0.2s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-        .seek-btn:hover { background: rgba(0, 0, 0, 0.85); border-color: var(--text-main); transform: translateY(-50%) scale(1.05); }
-        .seek-btn.left { left: calc(50% - 150px); }
-        .seek-btn.right { right: calc(50% - 150px); }
-        .player-wrapper.is-admin:hover .seek-btn { opacity: 1; visibility: visible; }
+        .seek-btn { position: absolute; top: 50%; transform: translateY(-50%); width: 52px; height: 52px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.5); color: #fff; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 50%; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 15; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease, background 0.15s ease, transform 0.15s ease; box-shadow: 0 2px 10px rgba(0,0,0,0.35); }
+        .seek-btn svg { width: 30px; height: 30px; display: block; overflow: visible; }
+        .seek-btn svg path { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+        .seek-btn svg text { fill: currentColor; font-family: inherit; font-size: 7.4px; font-weight: 700; text-anchor: middle; }
+        .seek-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+        .seek-btn:hover { background: rgba(0, 0, 0, 0.72); transform: translateY(-50%) scale(1.06); }
+        .seek-btn:active { transform: translateY(-50%) scale(0.94); }
+        .seek-btn.left { left: calc(50% - 120px); }
+        .seek-btn.right { right: calc(50% - 120px); }
+        .player-wrapper.is-admin.has-media.show-ui .seek-btn { opacity: 1; visibility: visible; }
 
-        /* --- CINEMATIC NATIVE VIDEO CONTROLS --- */
-        video#myVideo { width: 100%; height: 100%; object-fit: contain; outline: none; z-index: 1; }
+        /* --- VIDEO ELEMENT (native controls hidden; custom bar below) --- */
+        video#myVideo { width: 100%; height: 100%; object-fit: contain; outline: none; z-index: 1; background: #000; }
         video#myVideo::-webkit-media-controls { display: none !important; }
-        .player-wrapper:hover video#myVideo::-webkit-media-controls { display: flex !important; }
-        video#myVideo::-webkit-media-controls-panel {
-            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 70%, transparent 100%) !important;
-            padding-bottom: 8px;
-            display: flex !important;
-        }
-        video#myVideo::-webkit-media-controls-play-button,
-        video#myVideo::-webkit-media-controls-timeline,
-        video#myVideo::-webkit-media-controls-current-time-display,
-        video#myVideo::-webkit-media-controls-time-remaining-display,
-        video#myVideo::-webkit-media-controls-mute-button,
-        video#myVideo::-webkit-media-controls-volume-slider,
-        video#myVideo::-webkit-media-controls-fullscreen-button {
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-        }
+        video#myVideo::-webkit-media-controls-enclosure { display: none !important; }
+
+        /* --- CUSTOM PLAYER CONTROLS --- */
+        .player-wrapper.is-idle { cursor: none; }
+        .player-wrapper:fullscreen { border-radius: 0; border: none; }
+
+        .pl-controls { position: absolute; left: 0; right: 0; bottom: 0; z-index: 14; padding: 40px 16px 10px; background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 55%, transparent 100%); opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s ease; display: none; user-select: none; }
+        .player-wrapper.has-media.show-ui .pl-controls { opacity: 1; visibility: visible; }
+        .player-wrapper.has-media.direct .pl-controls { display: block; }
+        .player-wrapper.is-idle .pl-controls, .player-wrapper.is-idle .seek-btn, .player-wrapper.is-idle .pl-badge { opacity: 0 !important; visibility: hidden !important; }
+
+        .pl-timeline { position: relative; height: 18px; display: flex; align-items: center; cursor: pointer; touch-action: none; }
+        .pl-track { position: relative; width: 100%; height: 4px; border-radius: 4px; background: rgba(255,255,255,0.22); transition: height 0.12s ease; overflow: visible; }
+        .pl-timeline:hover .pl-track, .pl-timeline.dragging .pl-track { height: 6px; }
+        .pl-buffered, .pl-progress { position: absolute; top: 0; left: 0; height: 100%; border-radius: 4px; }
+        .pl-buffered { background: rgba(255,255,255,0.32); width: 0; }
+        .pl-progress { background: linear-gradient(90deg, var(--brand), #818cf8); width: 0; }
+        .pl-thumb { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(79,70,229,0.35), 0 2px 6px rgba(0,0,0,0.5); transform: translate(-50%, -50%) scale(0); transition: transform 0.12s ease; left: 0; pointer-events: none; }
+        .pl-timeline:hover .pl-thumb, .pl-timeline.dragging .pl-thumb { transform: translate(-50%, -50%) scale(1); }
+        .pl-timeline.locked { cursor: default; }
+        .pl-timeline.locked .pl-thumb { display: none; }
+        .pl-tip { position: absolute; bottom: 20px; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: #fff; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 5px; pointer-events: none; opacity: 0; transition: opacity 0.1s; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .pl-timeline:hover .pl-tip { opacity: 1; }
+        .pl-timeline.locked .pl-tip { display: none; }
+
+        .pl-row { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+        .pl-btn { width: 36px; height: 36px; border: none; background: transparent; color: #fff; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, transform 0.1s, opacity 0.15s; flex-shrink: 0; padding: 0; }
+        .pl-btn:hover { background: rgba(255,255,255,0.14); }
+        .pl-btn:active { transform: scale(0.92); }
+        .pl-btn svg { width: 20px; height: 20px; fill: currentColor; display: block; }
+        .pl-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+        .pl-btn[disabled]:hover { background: transparent; }
+        .pl-time { font-size: 12.5px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; padding: 0 8px; white-space: nowrap; opacity: 0.95; }
+        .pl-time .sep { opacity: 0.55; margin: 0 3px; }
+        .pl-time { cursor: pointer; border-radius: 6px; transition: background 0.15s; -webkit-tap-highlight-color: transparent; }
+        .pl-time:hover { background: rgba(255,255,255,0.12); }
+        .pl-time:active { background: rgba(255,255,255,0.18); }
+        .pl-time:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+        .pl-spacer { flex: 1; }
+
+        .pl-vol { display: flex; align-items: center; }
+        .pl-vol-slider { width: 0; opacity: 0; transition: width 0.2s ease, opacity 0.2s ease, margin 0.2s ease; height: 4px; -webkit-appearance: none; appearance: none; background: rgba(255,255,255,0.3); border-radius: 4px; outline: none; cursor: pointer; margin: 0; }
+        .pl-vol:hover .pl-vol-slider, .pl-vol-slider:focus { width: 72px; opacity: 1; margin: 0 8px 0 2px; }
+        .pl-vol-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; cursor: pointer; }
+        .pl-vol-slider::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: none; cursor: pointer; }
+
+        .pl-badge { position: absolute; top: 16px; right: 16px; z-index: 13; display: none; align-items: center; gap: 6px; background: rgba(0,0,0,0.65); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; padding: 5px 10px; border-radius: 20px; pointer-events: none; opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s ease; }
+        .pl-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .pl-badge.viewer .dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+        .player-wrapper.has-media .pl-badge { display: flex; }
+        .player-wrapper.has-media.show-ui .pl-badge { opacity: 1; visibility: visible; }
+        /* YouTube draws its own title bar top-left/right, so shift our badge below it and keep spinner/flash direct-only */
+        .player-wrapper.has-media:not(.direct) .pl-badge { top: auto; bottom: 56px; right: 14px; }
+        .player-wrapper:not(.direct) .pl-spinner, .player-wrapper:not(.direct) .pl-center { display: none !important; }
+
+        .pl-center { position: absolute; top: 50%; left: 50%; z-index: 13; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 50%; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; color: #fff; pointer-events: none; opacity: 0; transform: scale(0.8); }
+        .pl-center svg { width: 34px; height: 34px; fill: currentColor; }
+        .pl-center.flash { animation: plFlash 0.55s ease-out; }
+        @keyframes plFlash { 0% { opacity: 0.95; transform: scale(0.8); } 100% { opacity: 0; transform: scale(1.35); } }
+
+        .pl-spinner { position: absolute; top: 50%; left: 50%; z-index: 13; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.18); border-top-color: #fff; animation: plSpin 0.8s linear infinite; display: none; pointer-events: none; }
+        .pl-spinner.on { display: block; }
+        @keyframes plSpin { to { transform: rotate(360deg); } }
+
+        .pl-empty { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--text-muted); pointer-events: none; background: radial-gradient(ellipse at center, #18181b 0%, #09090b 75%); }
+        .pl-empty svg { width: 54px; height: 54px; fill: var(--border); }
+        .pl-empty b { font-size: 15px; color: var(--text-main); font-weight: 600; }
+        .pl-empty span { font-size: 12.5px; }
+        .player-wrapper.has-media .pl-empty { display: none; }
 
         /* --- YOUTUBE WRAPPER --- */
         #ytPlayerWrapper { display: none; width: 100%; height: 100%; z-index: 1; }
@@ -97,16 +156,19 @@
         .unpin-btn { display: none; position: absolute; top: 16px; right: 16px; z-index: 11; padding: 8px 16px; background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; font-weight: 600; cursor: pointer; backdrop-filter: blur(4px); transition: 0.2s; }
         .unpin-btn:hover { background: rgba(0,0,0,0.8); border-color: white; }
 
-        #videoStatusOverlay { position: absolute; top: 16px; left: 16px; z-index: 12; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(6px); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--text-main); padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none; align-items: center; gap: 8px; pointer-events: none; transition: opacity 0.2s ease; }
+        #videoStatusOverlay { position: absolute; top: 16px; left: 16px; z-index: 12; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.14); color: var(--text-main); padding: 6px 14px; border-radius: 20px; font-size: 12.5px; font-weight: 600; letter-spacing: 0.2px; display: none; align-items: center; gap: 8px; pointer-events: none; transition: opacity 0.2s ease; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
         .status-dot.pulsing { animation: pulseDot 1.2s infinite ease-in-out; }
         @keyframes pulseDot { 0% { opacity: 0.3; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.3; transform: scale(0.9); } }
 
-        .playback-bar { background-color: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-        .playback-info h4 { font-size: 15px; margin-bottom: 2px; }
-        .playback-info p { font-size: 12px; color: var(--text-muted); }
-        select { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-base); color: var(--text-main); font-size: 14px; font-weight: 600; cursor: pointer; outline: none; }
-        select:disabled { opacity: 0.6; cursor: not-allowed; }
+        .playback-bar { background: linear-gradient(180deg, var(--bg-surface), #141417); border: 1px solid var(--border); border-radius: 12px; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 16px; flex-wrap: wrap; }
+        .playback-info { min-width: 0; }
+        .playback-info h4 { font-size: 11px; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); font-weight: 700; }
+        .playback-info p { font-size: 13.5px; color: var(--text-main); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        select { padding: 7px 28px 7px 12px; border-radius: 8px; border: 1px solid var(--border); background-color: var(--bg-base); color: var(--text-main); font-size: 13px; font-weight: 600; cursor: pointer; outline: none; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23a1a1aa' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; transition: border-color 0.15s, background-color 0.15s; }
+        select:hover:not(:disabled) { border-color: #52525b; background-color: #111114; }
+        select:focus-visible { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(79,70,229,0.25); }
+        select:disabled { opacity: 0.55; cursor: not-allowed; }
 
         .social-sidebar { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
 
@@ -181,6 +243,13 @@
         .room-code-display { display: flex; align-items: center; justify-content: space-between; background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; }
         .room-code-display span { font-size: 16px; font-weight: 700; letter-spacing: 2px; }
         .room-code-display small { color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .room-code-display.copyable { cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+        .room-code-display.copyable:hover { border-color: var(--brand); background: #111114; }
+        .room-code-display.copyable:focus-visible { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(79,70,229,0.25); }
+        .copy-chip { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; color: var(--text-muted); padding: 6px 10px; border-radius: 6px; background: var(--bg-surface-hover); border: 1px solid var(--border); transition: color 0.15s, background 0.15s, border-color 0.15s; flex-shrink: 0; user-select: none; }
+        .copy-chip svg { width: 14px; height: 14px; fill: currentColor; display: block; }
+        .room-code-display.copyable:hover .copy-chip { color: var(--text-main); }
+        .room-code-display.copied .copy-chip { color: #fff; background: var(--success); border-color: var(--success); }
 
         .recovery-key-box { background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; word-break: break-all; font-family: monospace; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
 
@@ -241,10 +310,45 @@
         
         <div class="theater">
             <div class="player-wrapper">
-                <video id="myVideo" preload="metadata"></video>
-                
-                <button class="seek-btn left" id="seekBackBtn" title="Rewind 10s">⏪ 10s</button>
-                <button class="seek-btn right" id="seekFwdBtn" title="Skip 10s">10s ⏩</button>
+                <div class="pl-empty" id="plEmpty">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <b>Nothing playing yet</b>
+                    <span id="plEmptySub">Create or join a room to begin</span>
+                </div>
+
+                <video id="myVideo" preload="metadata" playsinline></video>
+
+                <div class="pl-spinner" id="plSpinner"></div>
+                <div class="pl-center" id="plCenter"></div>
+                <div class="pl-badge" id="plBadge"><span class="dot"></span><span id="plBadgeText">Synced</span></div>
+
+                <div class="pl-controls" id="plControls">
+                    <div class="pl-timeline" id="plTimeline">
+                        <div class="pl-track">
+                            <div class="pl-buffered" id="plBuffered"></div>
+                            <div class="pl-progress" id="plProgress"></div>
+                            <div class="pl-thumb" id="plThumb"></div>
+                        </div>
+                        <div class="pl-tip" id="plTip">0:00</div>
+                    </div>
+                    <div class="pl-row">
+                        <button class="pl-btn" id="plPlayBtn" title="Play / Pause (Space)"></button>
+                        <div class="pl-vol">
+                            <button class="pl-btn" id="plMuteBtn" title="Mute"></button>
+                            <input type="range" class="pl-vol-slider" id="plVol" min="0" max="1" step="0.02" value="1" aria-label="Volume">
+                        </div>
+                        <div class="pl-time" id="plTime" role="button" tabindex="0" title="Click to switch between elapsed and remaining time"><span id="plCur">0:00</span><span class="sep">/</span><span id="plDur">0:00</span></div>
+                        <div class="pl-spacer"></div>
+                        <button class="pl-btn" id="plFsBtn" title="Fullscreen (F)"></button>
+                    </div>
+                </div>
+
+                <button class="seek-btn left" id="seekBackBtn" title="Rewind 10 seconds" aria-label="Rewind 10 seconds">
+                    <svg viewBox="0 0 24 24"><path d="M12 5V2.5L7.8 6 12 9.5V7a6 6 0 1 1-6 6"/><text x="12" y="16.1">10</text></svg>
+                </button>
+                <button class="seek-btn right" id="seekFwdBtn" title="Skip 10 seconds" aria-label="Skip 10 seconds">
+                    <svg viewBox="0 0 24 24"><path d="M12 5V2.5L16.2 6 12 9.5V7a6 6 0 1 0 6 6"/><text x="12" y="16.1">10</text></svg>
+                </button>
 
                 <div id="ytPlayerWrapper">
                     <div id="ytPlayerContainer"></div>
@@ -345,8 +449,12 @@
         <div class="drawer-body">
             <div>
                 <div class="drawer-section-title">Room & Session</div>
-                <div class="room-code-display" id="roomCodeDisplay" style="display:none;">
+                <div class="room-code-display copyable" id="roomCodeDisplay" style="display:none;" role="button" tabindex="0" title="Click to copy room code">
                     <div><small>Room code</small><br><span id="roomCodeText">—</span></div>
+                    <div class="copy-chip" id="roomCopyChip">
+                        <svg viewBox="0 0 24 24" id="roomCopyIcon"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>
+                        <span id="roomCopyLabel">Copy</span>
+                    </div>
                 </div>
                 <div id="adminRecoveryContainer" style="display:none; margin-bottom: 12px;">
                     <small style="color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 11px;">Admin Recovery Key</small>
@@ -486,11 +594,11 @@
         function onYtPlayerStateChange(event) {
             if (!myRoomCode || activePlayerType !== 'youtube') return;
             if (event.data === YT.PlayerState.PLAYING) {
-                if (isController) mySupabase.from('rooms').update({ playback_state: 'playing', position: ytPlayer.getCurrentTime() }).eq('room_code', myRoomCode);
+                if (isController) queueRoomUpdate({ playback_state: 'playing', position: ytPlayer.getCurrentTime() }, 150);
                 else if (adminState === 'paused') { ytPlayer.pauseVideo(); updateVideoStatus("Paused by Admin", false); }
                 else updateVideoStatus("Synced", false, 2000);
             } else if (event.data === YT.PlayerState.PAUSED) {
-                if (isController) mySupabase.from('rooms').update({ playback_state: 'paused', position: ytPlayer.getCurrentTime() }).eq('room_code', myRoomCode);
+                if (isController) queueRoomUpdate({ playback_state: 'paused', position: ytPlayer.getCurrentTime() }, 150);
                 else if (adminState === 'playing') ytPlayer.playVideo();
             } else if (event.data === YT.PlayerState.BUFFERING) {
                 if (!isController && adminState === 'paused') updateVideoStatus("Paused by Admin", false);
@@ -522,6 +630,20 @@
         function setPlaybackSpeed(speed) {
             if (activePlayerType === 'youtube' && ytPlayerReady && ytPlayer.setPlaybackRate) ytPlayer.setPlaybackRate(speed);
             else if (activePlayerType === 'direct') video.playbackRate = speed;
+        }
+
+        // --- DATA SAVER: coalesce rapid DB writes (seek spam, key-holding, etc.) into one ---
+        let pendingRoomUpdate = {};
+        let roomUpdateTimer = null;
+        function queueRoomUpdate(fields, delay = 400) {
+            if (!isController || !myRoomCode) return;
+            Object.assign(pendingRoomUpdate, fields);
+            clearTimeout(roomUpdateTimer);
+            roomUpdateTimer = setTimeout(() => {
+                const payload = pendingRoomUpdate;
+                pendingRoomUpdate = {};
+                mySupabase.from('rooms').update(payload).eq('room_code', myRoomCode);
+            }, delay);
         }
 
         function dismissGate() { entryGate.style.display = 'none'; }
@@ -737,6 +859,17 @@
             if (peerConnection) peerConnection.close();
             peerConnection = new RTCPeerConnection(rtcConfig);
             if (localStream) localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            // DATA SAVER: cap outgoing bitrate (audio ~32kbps, video ~150kbps)
+            peerConnection.getSenders().forEach(sender => {
+                if (!sender.track || !sender.getParameters) return;
+                try {
+                    const params = sender.getParameters();
+                    if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+                    params.encodings[0].maxBitrate = sender.track.kind === 'audio' ? 32000 : 150000;
+                    sender.setParameters(params).catch(() => {});
+                } catch (e) {}
+            });
             
             peerConnection.ontrack = (event) => {
                 document.getElementById('remoteVideo').srcObject = event.streams[0];
@@ -766,8 +899,8 @@
 
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: true, 
-                    video: { width: { ideal: 320, max: 320 }, height: { ideal: 240, max: 240 }, frameRate: { ideal: 10, max: 15 } } 
+                    audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: { width: { ideal: 320, max: 320 }, height: { ideal: 240, max: 240 }, frameRate: { ideal: 10, max: 12 } } 
                 });
                 document.getElementById('localVideo').srcObject = localStream;
                 document.getElementById('localPlaceholder').style.display = 'none'; 
@@ -852,13 +985,16 @@
                 qualitySelect.innerHTML = ""; 
                 let firstAvailableUrl = "";
                 
+                // DATA SAVER: prefer the viewer's last choice, otherwise start at 480p (not 720p)
+                const savedQ = localStorage.getItem('private_theater_quality');
+                const pref = [savedQ, '480p', '360p', '720p'].filter(Boolean);
                 ['720p', '480p', '360p'].forEach(q => {
                     if (urls[q]) {
                         const opt = document.createElement('option'); opt.value = urls[q]; opt.text = q;
                         qualitySelect.appendChild(opt);
-                        if (!firstAvailableUrl) firstAvailableUrl = urls[q];
                     }
                 });
+                for (const q of pref) { if (urls[q]) { firstAvailableUrl = urls[q]; qualitySelect.value = urls[q]; break; } }
 
                 if (firstAvailableUrl) {
                     updateVideoStatus("Loading video...", true);
@@ -868,6 +1004,7 @@
                     
                     qualityContainer.style.display = "flex";
                     speedContainer.style.display = "flex";
+                    if (window.refreshPlayerRole) window.refreshPlayerRole();
                     document.getElementById('videoInfoText').innerText = "Live Stream Active.";
                     document.getElementById('videoInfoText').style.color = "var(--success)";
                 }
@@ -881,6 +1018,7 @@
 
         qualitySelect.addEventListener('change', (e) => {
             if (activePlayerType !== 'direct') return;
+            localStorage.setItem('private_theater_quality', qualitySelect.options[qualitySelect.selectedIndex].text);
             const time = video.currentTime; const speed = video.playbackRate; const paused = video.paused;
             video.src = e.target.value; video.currentTime = time; video.playbackRate = speed;
             if (!paused) video.play();
@@ -917,19 +1055,19 @@
 
         video.addEventListener('play', async () => { 
             if (activePlayerType !== 'direct') return;
-            if (isController && myRoomCode) await mySupabase.from('rooms').update({ playback_state: 'playing', position: video.currentTime }).eq('room_code', myRoomCode); 
+            if (isController && myRoomCode) queueRoomUpdate({ playback_state: 'playing', position: video.currentTime }, 150); 
             else if (!isController && adminState === 'paused') { video.pause(); updateVideoStatus("Paused by Admin", false); } 
         });
         
         video.addEventListener('pause', async () => { 
             if (activePlayerType !== 'direct') return;
-            if (isController && myRoomCode) await mySupabase.from('rooms').update({ playback_state: 'paused', position: video.currentTime }).eq('room_code', myRoomCode); 
+            if (isController && myRoomCode) queueRoomUpdate({ playback_state: 'paused', position: video.currentTime }, 150); 
             else if (!isController && adminState === 'playing') video.play();
         });
         
         video.addEventListener('seeked', async () => { 
             if (activePlayerType !== 'direct') return;
-            if (isController && myRoomCode) await mySupabase.from('rooms').update({ position: video.currentTime }).eq('room_code', myRoomCode); 
+            if (isController && myRoomCode) queueRoomUpdate({ position: video.currentTime }, 400); 
             else if (!isController) { 
                 if (Math.abs(video.currentTime - adminTime) > 2.0) { updateVideoStatus("↻ Syncing...", true); video.currentTime = adminTime; } 
             }
@@ -937,7 +1075,7 @@
         
         video.addEventListener('ratechange', async () => { 
             if (activePlayerType !== 'direct') return;
-            if (isController && myRoomCode) await mySupabase.from('rooms').update({ playback_speed: video.playbackRate }).eq('room_code', myRoomCode); 
+            if (isController && myRoomCode) queueRoomUpdate({ playback_speed: video.playbackRate }, 400); 
         });
 
         document.getElementById('createBtn').addEventListener('click', async () => {
@@ -1017,7 +1155,7 @@
         });
 
         function setupActiveRoomUI(asAdmin, roomCode, recoveryKey) {
-            video.controls = true; 
+            video.controls = false; // custom controls are used instead
             topStatus.innerText = (asAdmin ? "🟢 Admin" : "🔵 Viewer") + " | Room: " + roomCode;
             topStatus.className = "status-badge " + (asAdmin ? "admin" : "viewer");
             document.getElementById('localLabel').innerText = (asAdmin ? "Admin" : "Viewer") + " (You)";
@@ -1029,6 +1167,7 @@
             initRTCChannel();
             initSyncChannel();
             dismissGate();
+            if (window.refreshPlayerRole) window.refreshPlayerRole();
             roomCodeDisplay.style.display = 'flex';
             roomCodeText.innerText = roomCode;
             notConnectedNote.style.display = 'none';
@@ -1046,9 +1185,50 @@
             updateVideoStatus("Synced", false, 2000);
         }
 
-        document.getElementById('copyRecoveryBtn').addEventListener('click', () => {
-            navigator.clipboard.writeText(recoveryKeyBox.innerText);
-            alert("Recovery key copied to clipboard!");
+        // Clipboard helper: modern API first, then a fallback for older browsers / non-secure contexts
+        async function copyToClipboard(text) {
+            try {
+                if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
+            } catch (e) { /* fall through to legacy path */ }
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text; ta.setAttribute('readonly', '');
+                ta.style.cssText = 'position:fixed;top:-1000px;opacity:0;';
+                document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+                const ok = document.execCommand('copy');
+                ta.remove();
+                return ok;
+            } catch (e) { return false; }
+        }
+
+        const roomCopyLabel = document.getElementById('roomCopyLabel');
+        const roomCopyIcon = document.getElementById('roomCopyIcon');
+        const COPY_ICON = 'M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z';
+        const CHECK_ICON = 'M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z';
+        let roomCopyTimer;
+        async function copyRoomCode() {
+            const code = roomCodeText.innerText.trim();
+            if (!code || code === '—') return;
+            const ok = await copyToClipboard(code);
+            roomCopyLabel.innerText = ok ? 'Copied!' : 'Press Ctrl+C';
+            roomCopyIcon.firstElementChild && roomCopyIcon.firstElementChild.setAttribute('d', ok ? CHECK_ICON : COPY_ICON);
+            roomCodeDisplay.classList.toggle('copied', ok);
+            clearTimeout(roomCopyTimer);
+            roomCopyTimer = setTimeout(() => {
+                roomCopyLabel.innerText = 'Copy';
+                roomCopyIcon.firstElementChild && roomCopyIcon.firstElementChild.setAttribute('d', COPY_ICON);
+                roomCodeDisplay.classList.remove('copied');
+            }, 1600);
+        }
+        roomCodeDisplay.addEventListener('click', copyRoomCode);
+        roomCodeDisplay.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); copyRoomCode(); } });
+
+        document.getElementById('copyRecoveryBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('copyRecoveryBtn');
+            const ok = await copyToClipboard(recoveryKeyBox.innerText);
+            const original = '📋 Copy Recovery Key';
+            btn.innerText = ok ? '✅ Copied!' : 'Select the key and press Ctrl+C';
+            setTimeout(() => { btn.innerText = original; }, 1800);
         });
 
         leaveRoomBtn.addEventListener('click', () => {
@@ -1072,6 +1252,7 @@
             video.src = "";
             if (ytPlayerReady && activePlayerType === 'youtube') ytPlayer.stopVideo();
             activePlayerType = 'none';
+            if (window.refreshPlayerRole) window.refreshPlayerRole();
             video.style.display = 'block';
             ytPlayerWrapper.style.display = 'none';
             
@@ -1178,8 +1359,8 @@
 
         function initSyncChannel() {
             if (syncChannel) mySupabase.removeChannel(syncChannel);
-            syncChannel = mySupabase.channel('room-sync-' + Math.random())
-              .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms' }, (payload) => {
+            syncChannel = mySupabase.channel('room-sync-' + myRoomCode)
+              .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: 'room_code=eq.' + myRoomCode }, (payload) => {
                   if (payload.new.room_code !== myRoomCode) return;
 
                   if (isController && payload.new.controller_id !== mySessionId) {
@@ -1190,6 +1371,7 @@
                       document.getElementById('localLabel').innerText = "Viewer (You)";
                       adminVideoPanel.style.display = 'none';
                       adminRecoveryContainer.style.display = 'none';
+                      if (window.refreshPlayerRole) window.refreshPlayerRole();
                       localStorage.setItem('private_theater_session', JSON.stringify({ sessionId: mySessionId, roomCode: myRoomCode, role: 'viewer' }));
                   }
 
@@ -1217,21 +1399,237 @@
 
         let lastAdminTime = 0;
         setInterval(() => {
+            if (document.hidden) return;
             if (isController && myRoomCode) {
                 const currTime = getActiveTime();
                 if (Math.abs(currTime - lastAdminTime) > 2.0 && activePlayerType === 'youtube') {
-                    mySupabase.from('rooms').update({ position: currTime }).eq('room_code', myRoomCode);
+                    queueRoomUpdate({ position: currTime }, 400);
                 }
                 lastAdminTime = currTime;
             }
         }, 1000);
 
         setInterval(async () => {
+            if (document.hidden) return; // DATA SAVER: no heartbeat writes from a backgrounded tab
             if (isController && myRoomCode) {
                 let isPaused = (activePlayerType === 'youtube' && ytPlayerReady) ? (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) : video.paused;
                 if (!isPaused) await mySupabase.from('rooms').update({ position: getActiveTime() }).eq('room_code', myRoomCode);
             }
         }, 60000); 
+
+
+        // ======================================================================
+        //  CUSTOM PLAYER UI  (presentation only - sync logic lives in the
+        //  existing video event listeners, which these controls trigger)
+        // ======================================================================
+        const plWrap = document.querySelector('.player-wrapper');
+        const plControls = document.getElementById('plControls');
+        const plTimeline = document.getElementById('plTimeline');
+        const plProgress = document.getElementById('plProgress');
+        const plBuffered = document.getElementById('plBuffered');
+        const plThumb = document.getElementById('plThumb');
+        const plTip = document.getElementById('plTip');
+        const plPlayBtn = document.getElementById('plPlayBtn');
+        const plMuteBtn = document.getElementById('plMuteBtn');
+        const plFsBtn = document.getElementById('plFsBtn');
+        const plVol = document.getElementById('plVol');
+        const plCur = document.getElementById('plCur');
+        const plDur = document.getElementById('plDur');
+        const plCenter = document.getElementById('plCenter');
+        const plSpinner = document.getElementById('plSpinner');
+        const plBadge = document.getElementById('plBadge');
+        const plBadgeText = document.getElementById('plBadgeText');
+
+        const ICON = {
+            play:  '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+            pause: '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>',
+            volHi: '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>',
+            volLo: '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg>',
+            volOff:'<svg viewBox="0 0 24 24"><path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.5 2.5c0-.2 0-.5 0-.7zM19 12c0 .9-.2 1.8-.5 2.6l1.5 1.5A8.9 8.9 0 0 0 21 12a9 9 0 0 0-7-8.8v2.1a7 7 0 0 1 5 6.7zM4.3 3 3 4.3 7.7 9H3v6h4l5 5v-6.7l4.3 4.3c-.7.5-1.4.9-2.3 1.1v2.1a9 9 0 0 0 3.7-1.8l2 2 1.3-1.3L4.3 3zM12 4 9.9 6.1 12 8.2V4z"/></svg>',
+            fsIn:  '<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
+            fsOut: '<svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>'
+        };
+
+        function fmtTime(t) {
+            if (!isFinite(t) || t < 0) t = 0;
+            t = Math.floor(t);
+            const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60;
+            return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(sec).padStart(2, '0');
+        }
+
+        // --- elapsed <-> remaining time toggle (remembered per device) ---
+        const plTime = document.getElementById('plTime');
+        let showRemaining = false;
+        try { showRemaining = localStorage.getItem('private_theater_time_mode') === 'remaining'; } catch (e) {}
+
+        function renderTimeText(current, duration) {
+            if (showRemaining && duration) {
+                // Show what's left with a minus sign, e.g. -42:10 (like YouTube). Clamp so it never reads negative-zero glitches.
+                plCur.innerText = '-' + fmtTime(Math.max(0, duration - current));
+            } else {
+                plCur.innerText = fmtTime(current);
+            }
+            plDur.innerText = fmtTime(duration);
+        }
+        function toggleTimeMode() {
+            showRemaining = !showRemaining;
+            try { localStorage.setItem('private_theater_time_mode', showRemaining ? 'remaining' : 'elapsed'); } catch (e) {}
+            plTime.title = showRemaining ? 'Showing time remaining - click for elapsed time' : 'Showing elapsed time - click for time remaining';
+            renderTimeText(video.currentTime, video.duration || 0);
+        }
+        plTime.title = showRemaining ? 'Showing time remaining - click for elapsed time' : 'Showing elapsed time - click for time remaining';
+        plTime.addEventListener('click', (e) => { e.stopPropagation(); toggleTimeMode(); });
+        plTime.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTimeMode(); } });
+
+        plPlayBtn.innerHTML = ICON.play;
+        plMuteBtn.innerHTML = ICON.volHi;
+        plFsBtn.innerHTML = ICON.fsIn;
+
+        // --- role-aware state (called whenever role/media changes) ---
+        function refreshPlayerRole() {
+            const admin = !!isController;
+            plTimeline.classList.toggle('locked', !admin);
+            plPlayBtn.disabled = !admin;
+            plPlayBtn.title = admin ? 'Play / Pause (Space)' : 'Only the admin controls playback';
+            plBadge.classList.toggle('viewer', !admin);
+            plBadgeText.innerText = admin ? 'Host' : 'Synced with host';
+            plWrap.classList.toggle('has-media', activePlayerType !== 'none' && !!myRoomCode);
+            plWrap.classList.toggle('direct', activePlayerType === 'direct');
+            const sub = document.getElementById('plEmptySub');
+            if (sub) sub.innerText = myRoomCode ? (admin ? 'Open Settings (N) and broadcast a video' : 'Waiting for the host to start a video…') : 'Create or join a room to begin';
+        }
+        window.refreshPlayerRole = refreshPlayerRole;
+
+        // --- render loop pieces ---
+        function renderPlayState() {
+            plPlayBtn.innerHTML = video.paused ? ICON.play : ICON.pause;
+        }
+        function renderProgress() {
+            const d = video.duration || 0;
+            const pct = d ? (video.currentTime / d) * 100 : 0;
+            plProgress.style.width = pct + '%';
+            plThumb.style.left = pct + '%';
+            renderTimeText(video.currentTime, d);
+        }
+        function renderBuffered() {
+            const d = video.duration || 0;
+            if (!d || !video.buffered.length) { plBuffered.style.width = '0%'; return; }
+            let end = 0;
+            for (let i = 0; i < video.buffered.length; i++) {
+                if (video.buffered.start(i) <= video.currentTime + 0.5) end = Math.max(end, video.buffered.end(i));
+            }
+            plBuffered.style.width = Math.min(100, (end / d) * 100) + '%';
+        }
+        function renderVolume() {
+            const v = video.muted ? 0 : video.volume;
+            plMuteBtn.innerHTML = v === 0 ? ICON.volOff : (v < 0.5 ? ICON.volLo : ICON.volHi);
+            plVol.value = v;
+        }
+
+        video.addEventListener('play', renderPlayState);
+        video.addEventListener('pause', renderPlayState);
+        video.addEventListener('timeupdate', renderProgress);
+        video.addEventListener('durationchange', renderProgress);
+        video.addEventListener('loadedmetadata', () => { renderProgress(); renderBuffered(); refreshPlayerRole(); });
+        video.addEventListener('progress', renderBuffered);
+        video.addEventListener('seeked', renderBuffered);
+        video.addEventListener('volumechange', renderVolume);
+        video.addEventListener('waiting', () => plSpinner.classList.add('on'));
+        ['playing', 'canplay', 'error', 'emptied'].forEach(ev => video.addEventListener(ev, () => plSpinner.classList.remove('on')));
+
+        // --- play / pause (routes through the media element so sync listeners fire) ---
+        function flashCenter(icon) {
+            plCenter.innerHTML = icon;
+            plCenter.classList.remove('flash'); void plCenter.offsetWidth; plCenter.classList.add('flash');
+        }
+        function playerTogglePlay() {
+            if (!isController) return;
+            if (video.paused) { video.play().catch(() => {}); flashCenter(ICON.play); }
+            else { video.pause(); flashCenter(ICON.pause); }
+        }
+        plPlayBtn.addEventListener('click', (e) => { e.stopPropagation(); playerTogglePlay(); });
+
+        // click on the picture toggles play (admin, direct video only)
+        video.addEventListener('click', () => { if (activePlayerType === 'direct') playerTogglePlay(); });
+        video.addEventListener('dblclick', () => { if (activePlayerType === 'direct') toggleFullscreen(); });
+
+        // --- timeline: hover preview + click / drag to seek (admin only) ---
+        function timelineRatio(clientX) {
+            const r = plTimeline.getBoundingClientRect();
+            return Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+        }
+        plTimeline.addEventListener('mousemove', (e) => {
+            const r = timelineRatio(e.clientX);
+            plTip.style.left = (r * 100) + '%';
+            plTip.innerText = fmtTime(r * (video.duration || 0));
+        });
+        let scrubbing = false;
+        function scrubTo(clientX) {
+            const d = video.duration;
+            if (!d) return;
+            const ratio = timelineRatio(clientX);
+            plProgress.style.width = (ratio * 100) + '%';
+            plThumb.style.left = (ratio * 100) + '%';
+            renderTimeText(ratio * d, d);
+            return ratio * d;
+        }
+        plTimeline.addEventListener('pointerdown', (e) => {
+            if (!isController || activePlayerType !== 'direct') return;
+            scrubbing = true;
+            plTimeline.classList.add('dragging');
+            plTimeline.setPointerCapture(e.pointerId);
+            scrubTo(e.clientX);
+        });
+        plTimeline.addEventListener('pointermove', (e) => { if (scrubbing) scrubTo(e.clientX); });
+        const endScrub = (e) => {
+            if (!scrubbing) return;
+            scrubbing = false;
+            plTimeline.classList.remove('dragging');
+            const t = scrubTo(e.clientX);
+            if (t !== undefined) video.currentTime = t; // single seek -> existing 'seeked' listener syncs it once
+        };
+        plTimeline.addEventListener('pointerup', endScrub);
+        plTimeline.addEventListener('pointercancel', () => { scrubbing = false; plTimeline.classList.remove('dragging'); renderProgress(); });
+
+        // --- volume (local only, never synced) ---
+        plMuteBtn.addEventListener('click', (e) => { e.stopPropagation(); video.muted = !video.muted; if (!video.muted && video.volume === 0) video.volume = 0.5; });
+        plVol.addEventListener('input', () => { video.volume = parseFloat(plVol.value); video.muted = video.volume === 0; });
+
+        // --- fullscreen ---
+        function toggleFullscreen() {
+            if (document.fullscreenElement) document.exitFullscreen();
+            else if (plWrap.requestFullscreen) plWrap.requestFullscreen().catch(() => {});
+            else if (plWrap.webkitRequestFullscreen) plWrap.webkitRequestFullscreen();
+        }
+        plFsBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFullscreen(); });
+        document.addEventListener('fullscreenchange', () => { plFsBtn.innerHTML = document.fullscreenElement ? ICON.fsOut : ICON.fsIn; });
+
+        // --- auto-hide UI when the pointer is idle ---
+        let idleTimer;
+        function wakePlayerUI() {
+            plWrap.classList.add('show-ui');
+            plWrap.classList.remove('is-idle');
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => {
+                if (!video.paused || activePlayerType !== 'direct') plWrap.classList.add('is-idle');
+            }, 2800);
+        }
+        ['mousemove', 'pointerdown', 'touchstart'].forEach(ev => plWrap.addEventListener(ev, wakePlayerUI, { passive: true }));
+        plWrap.addEventListener('mouseleave', () => { if (!video.paused) plWrap.classList.remove('show-ui'); });
+        plWrap.addEventListener('mouseenter', wakePlayerUI);
+        video.addEventListener('pause', wakePlayerUI);
+
+        // --- keep the role/media flags fresh without touching the sync code ---
+        setInterval(refreshPlayerRole, 500);
+        refreshPlayerRole();
+
+        // Browser fullscreen key (F) - viewers may use it too since it's purely local
+        window.addEventListener('keydown', (e) => {
+            const tag = document.activeElement && document.activeElement.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+            if (e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); toggleFullscreen(); }
+            if (e.key.toLowerCase() === 'm' && activePlayerType === 'direct') { e.preventDefault(); video.muted = !video.muted; }
+        });
 
         let lastUsedSpeed = 1.0;
         window.addEventListener('keydown', (e) => {
