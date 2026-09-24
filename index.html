@@ -855,20 +855,48 @@
             viewerReady = false;
         }
 
+        // --- DATA SAVER LIMITS (outgoing only; the other side enforces its own) ---
+        const CALL_LIMITS = {
+            audioBitrate: 32000,     // 32 kbps mono voice
+            videoBitrate: 150000,    // 150 kbps
+            videoMaxFps: 15,         // frame-rate ceiling
+            videoMaxHeight: 240      // 240p ceiling (camera is already asked for 320x240)
+        };
+        function applyDataSaverLimits(pc) {
+            if (!pc || !pc.getSenders) return;
+            pc.getSenders().forEach(sender => {
+                if (!sender.track || !sender.getParameters || !sender.setParameters) return;
+                try {
+                    const params = sender.getParameters();
+                    if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+                    const enc = params.encodings[0];
+                    if (sender.track.kind === 'audio') {
+                        enc.maxBitrate = CALL_LIMITS.audioBitrate;
+                    } else if (sender.track.kind === 'video') {
+                        enc.maxBitrate = CALL_LIMITS.videoBitrate;
+                        enc.maxFramerate = CALL_LIMITS.videoMaxFps;
+                        // If the camera ever delivers more than 240p (some ignore 'max'), scale the encode down to fit.
+                        const h = (sender.track.getSettings && sender.track.getSettings().height) || 0;
+                        enc.scaleResolutionDownBy = h > CALL_LIMITS.videoMaxHeight ? h / CALL_LIMITS.videoMaxHeight : 1;
+                    }
+                    sender.setParameters(params).catch(() => {});
+                } catch (e) { /* older browsers: constraints + bitrate from getUserMedia still apply */ }
+            });
+        }
+
         function createPeerConnection() {
             if (peerConnection) peerConnection.close();
             peerConnection = new RTCPeerConnection(rtcConfig);
             if (localStream) localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
-            // DATA SAVER: cap outgoing bitrate (audio ~32kbps, video ~150kbps)
-            peerConnection.getSenders().forEach(sender => {
-                if (!sender.track || !sender.getParameters) return;
-                try {
-                    const params = sender.getParameters();
-                    if (!params.encodings || !params.encodings.length) params.encodings = [{}];
-                    params.encodings[0].maxBitrate = sender.track.kind === 'audio' ? 32000 : 150000;
-                    sender.setParameters(params).catch(() => {});
-                } catch (e) {}
+            // DATA SAVER: cap what we SEND. Applied now, and re-applied after negotiation
+            // and once media is flowing, because some browsers ignore or reset it earlier.
+            applyDataSaverLimits(peerConnection);
+            peerConnection.addEventListener('signalingstatechange', () => {
+                if (peerConnection && peerConnection.signalingState === 'stable') applyDataSaverLimits(peerConnection);
+            });
+            peerConnection.addEventListener('connectionstatechange', () => {
+                if (peerConnection && peerConnection.connectionState === 'connected') applyDataSaverLimits(peerConnection);
             });
             
             peerConnection.ontrack = (event) => {
@@ -900,10 +928,16 @@
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ 
                     audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-                    video: { width: { ideal: 320, max: 320 }, height: { ideal: 240, max: 240 }, frameRate: { ideal: 10, max: 12 } } 
+                    video: { width: { ideal: 320, max: 320 }, height: { ideal: 240, max: 240 }, frameRate: { ideal: 12, max: 15 } } 
                 });
                 document.getElementById('localVideo').srcObject = localStream;
                 document.getElementById('localPlaceholder').style.display = 'none'; 
+
+                // Some cameras ignore 'max' at capture time; clamp the live track too (best-effort).
+                const vTrack = localStream.getVideoTracks()[0];
+                if (vTrack && vTrack.applyConstraints) {
+                    vTrack.applyConstraints({ width: { max: 320 }, height: { max: 240 }, frameRate: { max: CALL_LIMITS.videoMaxFps } }).catch(() => {});
+                }
                 
                 createPeerConnection();
                 amIReady = true;
