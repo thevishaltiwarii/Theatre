@@ -588,20 +588,53 @@
             });
         };
 
+        // --- DIRECT SUPABASE UPDATES ---
         function onYtPlayerStateChange(event) {
             if (!myRoomCode || activePlayerType !== 'youtube') return;
             if (event.data === YT.PlayerState.PLAYING) {
-                if (isController) queueRoomUpdate({ playback_state: 'playing', position: ytPlayer.getCurrentTime() }, 150);
+                if (isController) mySupabase.from('rooms').update({ playback_state: 'playing', position: ytPlayer.getCurrentTime() }).eq('room_code', myRoomCode);
                 else if (adminState === 'paused') { ytPlayer.pauseVideo(); updateVideoStatus("Paused by Admin", false); }
                 else updateVideoStatus("Synced", false, 2000);
             } else if (event.data === YT.PlayerState.PAUSED) {
-                if (isController) queueRoomUpdate({ playback_state: 'paused', position: ytPlayer.getCurrentTime() }, 150);
+                if (isController) mySupabase.from('rooms').update({ playback_state: 'paused', position: ytPlayer.getCurrentTime() }).eq('room_code', myRoomCode);
                 else if (adminState === 'playing') ytPlayer.playVideo();
             } else if (event.data === YT.PlayerState.BUFFERING) {
                 if (!isController && adminState === 'paused') updateVideoStatus("Paused by Admin", false);
                 else updateVideoStatus("Buffering...", true);
             }
         }
+
+        video.addEventListener('play', async () => { 
+            if (activePlayerType !== 'direct') return;
+            if (isController && myRoomCode) {
+                await mySupabase.from('rooms').update({ playback_state: 'playing', position: video.currentTime }).eq('room_code', myRoomCode);
+            } else if (!isController && adminState === 'paused') { 
+                video.pause(); updateVideoStatus("Paused by Admin", false); 
+            } 
+        });
+        
+        video.addEventListener('pause', async () => { 
+            if (activePlayerType !== 'direct') return;
+            if (isController && myRoomCode) {
+                await mySupabase.from('rooms').update({ playback_state: 'paused', position: video.currentTime }).eq('room_code', myRoomCode);
+            } else if (!isController && adminState === 'playing') video.play();
+        });
+        
+        video.addEventListener('seeked', async () => { 
+            if (activePlayerType !== 'direct') return;
+            if (isController && myRoomCode) {
+                await mySupabase.from('rooms').update({ position: video.currentTime }).eq('room_code', myRoomCode);
+            } else if (!isController) { 
+                if (Math.abs(video.currentTime - adminTime) > 2.0) { updateVideoStatus("↻ Syncing...", true); video.currentTime = adminTime; } 
+            }
+        });
+        
+        video.addEventListener('ratechange', async () => { 
+            if (activePlayerType !== 'direct') return;
+            if (isController && myRoomCode) {
+                await mySupabase.from('rooms').update({ playback_speed: video.playbackRate }).eq('room_code', myRoomCode);
+            }
+        });
 
         function getActiveTime() {
             if (activePlayerType === 'youtube' && ytPlayerReady && ytPlayer.getCurrentTime) return ytPlayer.getCurrentTime() || 0;
@@ -627,19 +660,6 @@
         function setPlaybackSpeed(speed) {
             if (activePlayerType === 'youtube' && ytPlayerReady && ytPlayer.setPlaybackRate) ytPlayer.setPlaybackRate(speed);
             else if (activePlayerType === 'direct') video.playbackRate = speed;
-        }
-
-        let pendingRoomUpdate = {};
-        let roomUpdateTimer = null;
-        function queueRoomUpdate(fields, delay = 400) {
-            if (!isController || !myRoomCode) return;
-            Object.assign(pendingRoomUpdate, fields);
-            clearTimeout(roomUpdateTimer);
-            roomUpdateTimer = setTimeout(() => {
-                const payload = pendingRoomUpdate;
-                pendingRoomUpdate = {};
-                mySupabase.from('rooms').update(payload).eq('room_code', myRoomCode);
-            }, delay);
         }
 
         function dismissGate() { entryGate.style.display = 'none'; }
@@ -1071,31 +1091,6 @@
         video.addEventListener('stalled', () => { if (myRoomCode && activePlayerType === 'direct') updateVideoStatus("Connection unstable", true); });
         video.addEventListener('error', () => { if (myRoomCode && activePlayerType === 'direct') updateVideoStatus("Unable to load video", false); });
 
-        video.addEventListener('play', async () => { 
-            if (activePlayerType !== 'direct') return;
-            if (isController && myRoomCode) queueRoomUpdate({ playback_state: 'playing', position: video.currentTime }, 150); 
-            else if (!isController && adminState === 'paused') { video.pause(); updateVideoStatus("Paused by Admin", false); } 
-        });
-        
-        video.addEventListener('pause', async () => { 
-            if (activePlayerType !== 'direct') return;
-            if (isController && myRoomCode) queueRoomUpdate({ playback_state: 'paused', position: video.currentTime }, 150); 
-            else if (!isController && adminState === 'playing') video.play();
-        });
-        
-        video.addEventListener('seeked', async () => { 
-            if (activePlayerType !== 'direct') return;
-            if (isController && myRoomCode) queueRoomUpdate({ position: video.currentTime }, 400); 
-            else if (!isController) { 
-                if (Math.abs(video.currentTime - adminTime) > 2.0) { updateVideoStatus("↻ Syncing...", true); video.currentTime = adminTime; } 
-            }
-        });
-        
-        video.addEventListener('ratechange', async () => { 
-            if (activePlayerType !== 'direct') return;
-            if (isController && myRoomCode) queueRoomUpdate({ playback_speed: video.playbackRate }, 400); 
-        });
-
         document.getElementById('createBtn').addEventListener('click', async () => {
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
             const recoveryToken = 'rec_' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
@@ -1419,7 +1414,7 @@
             if (isController && myRoomCode) {
                 const currTime = getActiveTime();
                 if (Math.abs(currTime - lastAdminTime) > 2.0 && activePlayerType === 'youtube') {
-                    queueRoomUpdate({ position: currTime }, 400);
+                    mySupabase.from('rooms').update({ position: currTime }).eq('room_code', myRoomCode);
                 }
                 lastAdminTime = currTime;
             }
@@ -1496,8 +1491,8 @@
         function refreshPlayerRole() {
             const admin = !!isController;
             plTimeline.classList.toggle('locked', !admin);
-            plPlayBtn.disabled = !admin;
-            plPlayBtn.title = admin ? 'Play / Pause (Space)' : 'Only the admin controls playback';
+            plPlayBtn.disabled = false; // Enabled for viewers so they can force-play if browser auto-play blocks them
+            plPlayBtn.title = admin ? 'Play / Pause (Space)' : 'Click to resync if video is stuck';
             plBadge.classList.toggle('viewer', !admin);
             plBadgeText.innerText = admin ? 'Host' : 'Synced with host';
             plWrap.classList.toggle('has-media', activePlayerType !== 'none' && !!myRoomCode);
@@ -1546,9 +1541,21 @@
             plCenter.classList.remove('flash'); void plCenter.offsetWidth; plCenter.classList.add('flash');
         }
         function playerTogglePlay() {
-            if (!isController) return;
-            if (video.paused) { video.play().catch(() => {}); flashCenter(ICON.play); }
-            else { video.pause(); flashCenter(ICON.pause); }
+            if (!isController) {
+                if (adminState === 'playing') {
+                    if (activePlayerType === 'direct') video.play().catch(() => {});
+                    else if (activePlayerType === 'youtube' && ytPlayerReady) ytPlayer.playVideo();
+                }
+                return;
+            }
+            
+            if (activePlayerType === 'direct') {
+                if (video.paused) { video.play().catch(() => {}); flashCenter(ICON.play); }
+                else { video.pause(); flashCenter(ICON.pause); }
+            } else if (activePlayerType === 'youtube' && ytPlayerReady) {
+                if (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) ytPlayer.playVideo();
+                else ytPlayer.pauseVideo();
+            }
         }
         plPlayBtn.addEventListener('click', (e) => { e.stopPropagation(); playerTogglePlay(); });
 
@@ -1647,8 +1654,7 @@
                 case ' ':
                     e.preventDefault();
                     if (activeTag === 'BUTTON') document.activeElement.blur();
-                    let isPaused = (activePlayerType === 'youtube' && ytPlayerReady) ? (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) : video.paused;
-                    if (isPaused) playActiveMedia(); else pauseActiveMedia();
+                    playerTogglePlay(); 
                     break;
                 case 'c':
                     e.preventDefault();
