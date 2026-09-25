@@ -41,9 +41,10 @@
         .gear-btn:hover { background: var(--border); color: var(--text-main); }
 
         /* --- NOTIFICATION TOAST --- */
-        #notification-container { position: fixed; top: 70px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-        .toast { background: var(--brand); color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-size: 14px; font-weight: 500; animation: slideIn 0.3s ease-out forwards, fadeOut 0.3s ease-in 3.5s forwards; opacity: 0; transform: translateX(120%); display: flex; align-items: center; gap: 8px; }
-        @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+        #notification-container { position: fixed; top: 70px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast { background: var(--brand); color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-size: 14px; font-weight: 500; animation: slideIn 0.3s ease-out forwards, fadeOut 0.3s ease-in 4s forwards; max-width: 320px; line-height: 1.4; display: flex; align-items: flex-start; gap: 8px; pointer-events: auto; }
+        .toast.error { background: var(--danger); animation-duration: 0.3s, 6s; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(120%); } to { opacity: 1; transform: translateX(0); } }
         @keyframes fadeOut { to { opacity: 0; } }
 
         /* --- INCOMING CALL MODAL --- */
@@ -493,6 +494,23 @@
                     <button class="btn btn-primary" id="broadcastYtBtn" style="background: #ef4444;">Broadcast YouTube</button>
                 </div>
             </div>
+
+            <!-- NEW: SECURE DEVELOPER SETTINGS -->
+            <div id="devSettingsPanel" style="margin-top: 10px; display: none;">
+                <div class="drawer-section-title" id="devTitle">Developer Settings 🔒</div>
+                
+                <div id="devUnlockContainer" style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <input type="password" id="devCodeInput" placeholder="Enter Code" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-base); color: var(--text-main); font-size: 12px; outline: none; text-align: center; letter-spacing: 2px;">
+                    <button class="btn btn-secondary" id="unlockDevBtn" style="padding: 10px 16px; font-size: 12px; width: auto;">Unlock</button>
+                </div>
+
+                <div id="devHiddenControls" style="display: none;">
+                    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.4;">Paste backup TURN credentials (JSON array) below to hot-swap mid-call.</p>
+                    <textarea id="devIceInput" style="width: 100%; height: 160px; background: var(--bg-base); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-family: monospace; font-size: 10px; resize: vertical; margin-bottom: 10px; outline: none;"></textarea>
+                    <button class="btn btn-secondary" id="saveDevBtn" style="font-size: 13px;">Save & Inject Credentials</button>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -579,10 +597,10 @@
         let viewerReady = false;
         
         let iceCandidatesQueue = []; 
-        let statsInterval = null; // Background loop for network diagnostic badge
+        let statsInterval = null; 
         
-        // --- SECURE TURN CREDENTIALS INTEGRATION ---
-        const rtcConfig = { 
+        // --- MUTABLE TURN CREDENTIALS & DEV SETTINGS LOGIC ---
+        let rtcConfig = { 
             iceServers: [
                 { urls: "stun:stun.relay.metered.ca:80" },
                 { urls: "turn:global.relay.metered.ca:80", username: "f6ff84fbc9578158dc0df2aa", credential: "901FDjBr8A2Z2w5+" },
@@ -591,6 +609,64 @@
                 { urls: "turns:global.relay.metered.ca:443?transport=tcp", username: "f6ff84fbc9578158dc0df2aa", credential: "901FDjBr8A2Z2w5+" }
             ] 
         };
+
+        function loadCustomCredentials() {
+            const saved = localStorage.getItem('customIceServers');
+            if (saved) {
+                try { rtcConfig.iceServers = JSON.parse(saved); } catch(e) {}
+            }
+            const devInput = document.getElementById('devIceInput');
+            if (devInput) devInput.value = JSON.stringify(rtcConfig.iceServers, null, 2);
+        }
+        loadCustomCredentials();
+
+        const devCodeInput = document.getElementById('devCodeInput');
+        const unlockDevBtn = document.getElementById('unlockDevBtn');
+        const devHiddenControls = document.getElementById('devHiddenControls');
+        const devUnlockContainer = document.getElementById('devUnlockContainer');
+        const devTitle = document.getElementById('devTitle');
+
+        unlockDevBtn.addEventListener('click', () => {
+            if (devCodeInput.value === '7777') { 
+                devUnlockContainer.style.display = 'none';
+                devHiddenControls.style.display = 'block';
+                devTitle.innerText = 'Developer Settings 🔓';
+                devCodeInput.value = '';
+            } else {
+                triggerNotification('System', 'Incorrect Developer Code', true);
+                devCodeInput.value = '';
+            }
+        });
+
+        document.getElementById('saveDevBtn').addEventListener('click', async () => {
+            const val = document.getElementById('devIceInput').value.trim();
+            try {
+                const parsed = JSON.parse(val);
+                if (!Array.isArray(parsed)) throw new Error("Must be an array");
+                
+                rtcConfig.iceServers = parsed;
+                localStorage.setItem('customIceServers', val);
+                closeDrawer();
+                triggerNotification('System', 'Credentials successfully updated.');
+
+                if (peerConnection && peerConnection.connectionState !== 'closed') {
+                    peerConnection.setConfiguration(rtcConfig);
+                    triggerNotification('System', 'Credentials injected into active stream.');
+                    
+                    if (isController) {
+                        document.getElementById('routeBadge').innerText = '🔄 Hot-swapping...';
+                        if (peerConnection.restartIce) peerConnection.restartIce();
+                        const offer = await peerConnection.createOffer({ iceRestart: true });
+                        await peerConnection.setLocalDescription(offer);
+                        rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'offer', offer: offer } });
+                    } else {
+                        triggerNotification('System', 'Tell Admin to click Reroute to apply.');
+                    }
+                }
+            } catch(e) {
+                alert("Invalid JSON format. Please check syntax.");
+            }
+        });
 
         let ytPlayer;
         let ytPlayerReady = false;
@@ -736,28 +812,25 @@
             return val;
         }
 
-        function triggerNotification(sender, text) {
+        function triggerNotification(sender, text, isError = false) {
             const container = document.getElementById('notification-container');
             const toast = document.createElement('div');
-            toast.className = 'toast';
-            const shortText = text.length > 35 ? text.substring(0, 35) + '...' : text;
+            toast.className = 'toast' + (isError ? ' error' : '');
+            const shortText = text.length > 100 ? text.substring(0, 100) + '...' : text;
             toast.innerHTML = `<span>💬</span> <div><b>${sender}:</b> ${shortText}</div>`;
             container.appendChild(toast);
             try {
                 const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
                 audio.volume = 0.4; audio.play().catch(e => {}); 
             } catch(e) {}
-            setTimeout(() => { toast.remove(); }, 3800);
+            setTimeout(() => { toast.remove(); }, isError ? 7000 : 3800);
         }
 
-        // --- NEW: SYMMETRIC RING & ACCEPT HANDLERS ---
         document.getElementById('acceptCallBtn').addEventListener('click', async () => {
             document.getElementById('incomingCallToast').style.display = 'none';
             await startLocalCamera();
-            // Automatically push "ready" back to the person who called
             rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'ready' } });
             
-            // If the Admin is the one who clicked Accept, they immediately create the strict offer
             if (isController) {
                 const offer = await peerConnection.createOffer(); 
                 await peerConnection.setLocalDescription(offer);
@@ -800,7 +873,6 @@
                 const data = payload.payload;
                 
                 if (data.type === 'ready') {
-                    // Receiver clicked Accept. If we are the Admin, we build the offer.
                     viewerReady = true;
                     if (isController && amIReady && peerConnection) {
                         const offer = await peerConnection.createOffer(); 
@@ -834,7 +906,6 @@
                         if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
                             peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(()=>{});
                         } else {
-                            // Safely queue ICE addresses until the video offer is finalized
                             iceCandidatesQueue.push(new RTCIceCandidate(data.candidate));
                         }
                     }
@@ -853,7 +924,7 @@
                     }
                 }
                 else if (data.type === 'call_declined') {
-                    triggerNotification('System', 'Partner declined the video call.');
+                    triggerNotification('System', 'Partner declined the video call.', true);
                     endVideoCall();
                 }
                 else if (data.type === 'call_ended') {
@@ -901,7 +972,6 @@
         document.getElementById('sendChatBtn').addEventListener('click', sendChatMessage);
         chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChatMessage(); });
 
-        // --- NEW: DIAGNOSTICS & ICE RESTART LOGIC ---
         function startDiagnosticsPolling() {
             if (statsInterval) clearInterval(statsInterval);
             document.getElementById('webrtcStatus').style.display = 'flex';
@@ -913,20 +983,22 @@
                 if (!peerConnection || peerConnection.connectionState !== 'connected') return;
                 try {
                     const stats = await peerConnection.getStats(null);
-                    let activeCandidatePair = null;
+                    let activePairId = null;
+                    
                     stats.forEach(report => {
-                        if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.nominated) {
-                            activeCandidatePair = report;
-                        }
+                        if (report.type === 'transport') activePairId = report.selectedCandidatePairId;
                     });
                     
-                    if (activeCandidatePair) {
-                        const localCandidate = stats.get(activeCandidatePair.localCandidateId);
-                        if (localCandidate) {
-                            if (localCandidate.candidateType === 'relay') {
+                    if (activePairId) {
+                        const activePair = stats.get(activePairId);
+                        if (activePair) {
+                            const local = stats.get(activePair.localCandidateId);
+                            const remote = stats.get(activePair.remoteCandidateId);
+                            
+                            if (local?.candidateType === 'relay' || remote?.candidateType === 'relay') {
                                 badge.innerText = '☁️ TURN Relay Active';
                                 statusBox.className = 'webrtc-status turn';
-                                restartBtn.style.display = 'block'; // Show Reroute button
+                                restartBtn.style.display = 'block'; 
                             } else {
                                 badge.innerText = '⚡ Direct STUN Active';
                                 statusBox.className = 'webrtc-status stun';
@@ -934,7 +1006,7 @@
                             }
                         }
                     }
-                } catch (e) { /* Ignore polling errors on old browsers */ }
+                } catch (e) { }
             }, 2000);
         }
 
@@ -954,7 +1026,6 @@
             document.getElementById('routeBadge').innerText = '🔄 Rerouting...';
             document.getElementById('webrtcStatus').className = 'webrtc-status';
             try {
-                // Restart ICE completely drops current routes and probes for new ones
                 if (peerConnection.restartIce) peerConnection.restartIce();
                 const offer = await peerConnection.createOffer({ iceRestart: true });
                 await peerConnection.setLocalDescription(offer);
@@ -1054,8 +1125,13 @@
 
             peerConnection.oniceconnectionstatechange = () => {
                 if (peerConnection && (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed')) {
-                    endVideoCall();
-                    triggerNotification('System', 'Network drop detected. Call was disconnected cleanly.');
+                    stopDiagnosticsPolling();
+                    triggerNotification('⚠️ Connection Error', 'Video connection dropped! If TURN limit exceeded, unlock Dev Settings and paste backup credentials.', true);
+                    document.getElementById('webrtcStatus').style.display = 'flex';
+                    document.getElementById('routeBadge').innerText = '❌ Connection Dropped';
+                    document.getElementById('webrtcStatus').className = 'webrtc-status turn';
+                    
+                    if (isController) document.getElementById('iceRestartBtn').style.display = 'block';
                 }
             };
         }
@@ -1064,7 +1140,7 @@
             if (localStream) return;
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    audio: { channelCount: 2, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
                     video: { width: { ideal: 320, max: 320 }, height: { ideal: 240, max: 240 }, frameRate: { ideal: 12, max: 15 } } 
                 });
                 document.getElementById('localVideo').srcObject = localStream;
@@ -1086,7 +1162,7 @@
                 document.getElementById('pinLocalBtn').style.display = 'flex'; 
                 document.getElementById('endCallBtn').style.display = 'flex'; 
                 document.getElementById('localCamBox').classList.add('active-controls');
-                document.getElementById('webrtcStatus').style.display = 'flex'; // Show diagnostics block
+                document.getElementById('webrtcStatus').style.display = 'flex'; 
             } catch (err) {
                 alert("Camera access denied or unavailable.");
                 throw err;
@@ -1098,10 +1174,8 @@
             e.target.innerText = "Connecting…";
             try {
                 await startLocalCamera();
-                // Send the ring to prompt the other person
                 rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'ring' } });
                 
-                // If they are magically already ready, push a ready signal just in case
                 if (viewerReady) rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'ready' } });
             } catch (err) {
                 e.target.innerText = "Join Call";
@@ -1326,10 +1400,12 @@
             if (asAdmin) {
                 adminVideoPanel.style.display = 'block';
                 adminRecoveryContainer.style.display = 'block';
+                document.getElementById('devSettingsPanel').style.display = 'block';
                 recoveryKeyBox.innerText = recoveryKey || localStorage.getItem('private_theater_recovery_' + roomCode) || 'Saved on this browser';
             } else {
                 adminVideoPanel.style.display = 'none';
                 adminRecoveryContainer.style.display = 'none';
+                document.getElementById('devSettingsPanel').style.display = 'none';
             }
 
             updateVideoStatus("Synced", false, 2000);
@@ -1415,9 +1491,16 @@
 
             topStatus.innerText = "Not Connected";
             topStatus.className = "status-badge";
+            
             roomCodeDisplay.style.display = 'none';
             adminVideoPanel.style.display = 'none';
             adminRecoveryContainer.style.display = 'none';
+            document.getElementById('devSettingsPanel').style.display = 'none';
+            
+            document.getElementById('devUnlockContainer').style.display = 'flex';
+            document.getElementById('devHiddenControls').style.display = 'none';
+            document.getElementById('devTitle').innerText = 'Developer Settings 🔒';
+            
             leaveRoomBtn.style.display = 'none';
             notConnectedNote.style.display = 'block';
             
