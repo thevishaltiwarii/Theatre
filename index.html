@@ -51,10 +51,12 @@
         #incomingCallToast { display: none; position: fixed; top: 24px; left: 50%; transform: translateX(-50%); background: var(--bg-surface); border: 1px solid var(--border); padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); z-index: 9999; align-items: center; gap: 16px; animation: slideDown 0.3s ease-out forwards; }
         @keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 24px; opacity: 1; } }
 
-        /* --- WEBRTC DIAGNOSTICS --- */
+        /* --- 3-TIER WEBRTC DIAGNOSTICS --- */
         .webrtc-status { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .webrtc-status.stun { color: var(--success); border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08); }
+        .webrtc-status.cf-turn { color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08); }
         .webrtc-status.turn { color: var(--warning); border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08); }
+        
         #iceRestartBtn { background: var(--bg-surface-hover); color: white; border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 10px; cursor: pointer; text-transform: uppercase; font-weight: 700; transition: 0.2s; display: flex; align-items: center; gap: 4px; }
         #iceRestartBtn:hover { background: var(--border); }
 
@@ -62,7 +64,7 @@
         #entryGate { position: fixed; inset: 0; background: rgba(9,9,11,0.92); backdrop-filter: blur(6px); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
         .gate-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
         .gate-card h2 { font-size: 20px; margin-bottom: 6px; }
-        .gate-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
+        .gate-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5; }
 
         /* --- MAIN STAGE --- */
         .main-stage { display: flex; flex: 1; min-height: 0; max-width: 1600px; margin: 0 auto; width: 100%; padding: 16px 24px; gap: 16px; align-items: stretch; }
@@ -280,14 +282,17 @@
         </div>
     </div>
 
+    <!-- RESTRUCTURED ENTRY GATE -->
     <div id="entryGate">
         <div class="gate-card">
             <h2>🎬 Private Theatre</h2>
             <p>Create a room, join with a 6-digit OTP code, or recover admin access.</p>
             
-            <button class="btn btn-primary" id="createBtn">Create Room (Host)</button>
+            <div class="divider" style="margin-top: 5px;"><span>HOST ROOM</span></div>
+            <input type="password" id="adminPinInput" class="link-input" placeholder="Admin PIN" style="text-align: center; font-weight: bold; letter-spacing: 2px;">
+            <button class="btn btn-primary" id="createBtn" style="margin-bottom: 14px;">Create Room (Host)</button>
             
-            <div class="divider"><span>OR JOIN</span></div>
+            <div class="divider"><span>JOIN ROOM</span></div>
             <div class="input-group">
                 <input type="text" id="joinInput" placeholder="6-DIGIT CODE" maxlength="6" inputmode="numeric" pattern="[0-9]*">
                 <button class="btn btn-secondary" id="joinBtn" style="width: 80px;">Join</button>
@@ -399,7 +404,7 @@
 
         <div class="social-sidebar">
             
-            <!-- WEBRTC NETWORK DIAGNOSTICS -->
+            <!-- 3-TIER WEBRTC NETWORK DIAGNOSTICS -->
             <div id="webrtcStatus" class="webrtc-status" style="display:none; margin-bottom: 0px;">
                 <span id="routeBadge">🔍 Locating Route...</span>
                 <button id="iceRestartBtn" style="display:none;" title="Attempt to establish a direct connection">⚡ Reroute</button>
@@ -500,12 +505,13 @@
                 <div class="drawer-section-title" id="devTitle">Developer Settings 🔒</div>
                 
                 <div id="devUnlockContainer" style="display: flex; gap: 8px; margin-bottom: 8px;">
-                    <input type="password" id="devCodeInput" placeholder="Enter Code" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-base); color: var(--text-main); font-size: 12px; outline: none; text-align: center; letter-spacing: 2px;">
+                    <input type="password" id="devCodeInput" placeholder="Enter PIN to Unlock" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-base); color: var(--text-main); font-size: 12px; outline: none; text-align: center; letter-spacing: 2px;">
                     <button class="btn btn-secondary" id="unlockDevBtn" style="padding: 10px 16px; font-size: 12px; width: auto;">Unlock</button>
                 </div>
 
                 <div id="devHiddenControls" style="display: none;">
-                    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.4;">Paste backup TURN credentials (JSON array) below to hot-swap mid-call.</p>
+                    <button class="btn btn-primary" id="refreshCfBtn" style="font-size: 13px; margin-bottom: 12px; background: var(--accent);">🔄 Fetch Fresh Cloudflare Token</button>
+                    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.4;">Or manually paste backup TURN credentials (JSON array) below to hot-swap.</p>
                     <textarea id="devIceInput" style="width: 100%; height: 160px; background: var(--bg-base); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-family: monospace; font-size: 10px; resize: vertical; margin-bottom: 10px; outline: none;"></textarea>
                     <button class="btn btn-secondary" id="saveDevBtn" style="font-size: 13px;">Save & Inject Credentials</button>
                 </div>
@@ -613,10 +619,10 @@
         let iceCandidatesQueue = []; 
         let statsInterval = null; 
         
-        // --- MUTABLE TURN CREDENTIALS & DEV SETTINGS LOGIC ---
+        // --- SECURE TURN VAULT & CREDENTIALS ---
         let rtcConfig = { iceServers: [] }; 
+        let isUsingMetered = true; // Tracks the active infrastructure provider
 
-        // Metered Backup Credentials
         const fallbackMeteredServers = [
           { "urls": "stun:stun.relay.metered.ca:80" },
           { "urls": "turn:global.relay.metered.ca:80", "username": "ae1305948bfe3c70c3457862", "credential": "KlJ5MlRwsBgTcSB3" },
@@ -625,66 +631,90 @@
           { "urls": "turns:global.relay.metered.ca:443?transport=tcp", "username": "ae1305948bfe3c70c3457862", "credential": "KlJ5MlRwsBgTcSB3" }
         ];
 
-        // Invisibly fetch 10GB Cloudflare Credentials via Hugging Face
-        async function loadCloudflareCredentials() {
+        // Attempt to load previously active credentials immediately on page load
+        const savedTurn = localStorage.getItem('private_theater_turn');
+        if (savedTurn) {
+            try { 
+                rtcConfig.iceServers = JSON.parse(savedTurn); 
+                isUsingMetered = savedTurn.includes('metered.ca');
+            } catch(e) {}
+        } else {
+            rtcConfig.iceServers = fallbackMeteredServers;
+        }
+
+        // The secure backend fetch function using PIN
+        async function fetchCloudflareWithPin(pin) {
             try {
-                // Hardcoded HF Token
-                const HF_TOKEN = "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"; 
+                // 1. Ask Supabase for the hidden Hugging Face token using the PIN
+                const { data: hfToken, error } = await mySupabase.rpc('get_hf_token', { provided_pin: pin });
+                if (error || !hfToken) throw new Error("Invalid PIN or Database error.");
                 
+                // 2. Fetch the 10GB Cloudflare Servers using the secured token
                 const response = await fetch("https://fastrtc-turn-service.hf.space/credentials", { 
                     method: 'GET',
-                    headers: { "Authorization": `Bearer ${HF_TOKEN}` }
+                    headers: { "Authorization": `Bearer ${hfToken}` }
                 });
                 
-                if (!response.ok) throw new Error("Fetch failed with status: " + response.status);
-                
+                if (!response.ok) throw new Error("Cloudflare Fetch failed");
                 const payload = await response.json();
                 
-                // FastRTC returns the Cloudflare credentials dynamically
                 const cloudflareServers = payload.iceServers ? payload.iceServers : payload;
-                
-                // Add Google's free STUN server to the front as the highest priority
                 cloudflareServers.unshift({ urls: "stun:stun.l.google.com:19302" });
                 
+                // 3. Inject and save them
                 rtcConfig.iceServers = cloudflareServers;
-                console.log("Cloudflare 10GB TURN Credentials loaded securely!");
-                triggerNotification('Network', '☁️ Cloudflare 10GB Proxy Connected!');
+                isUsingMetered = false;
+                localStorage.setItem('private_theater_turn', JSON.stringify(cloudflareServers));
+                
+                const devInput = document.getElementById('devIceInput');
+                if (devInput) devInput.value = JSON.stringify(rtcConfig.iceServers, null, 2);
+                
+                return true;
             } catch (e) {
-                console.error("Failed to load Cloudflare TURN, falling back to Metered", e);
+                console.error("TURN Vault Error:", e);
                 rtcConfig.iceServers = fallbackMeteredServers;
-                triggerNotification('Network', '⚠️ Cloudflare Proxy failed. Falling back to Metered 500MB.', true);
+                isUsingMetered = true;
+                return false;
             }
         }
-        
-        // Execute the fetch immediately when the page opens
-        loadCloudflareCredentials();
 
-        // Keep Developer Panel functional for manual overrides
-        function loadCustomCredentials() {
-            const saved = localStorage.getItem('customIceServers');
-            if (saved) {
-                try { rtcConfig.iceServers = JSON.parse(saved); } catch(e) {}
-            }
-            const devInput = document.getElementById('devIceInput');
-            if (devInput) devInput.value = JSON.stringify(rtcConfig.iceServers, null, 2);
-        }
-        setTimeout(loadCustomCredentials, 1500);
-
+        // --- DEVELOPER PANEL CONTROLS ---
         const devCodeInput = document.getElementById('devCodeInput');
         const unlockDevBtn = document.getElementById('unlockDevBtn');
         const devHiddenControls = document.getElementById('devHiddenControls');
         const devUnlockContainer = document.getElementById('devUnlockContainer');
         const devTitle = document.getElementById('devTitle');
+        const refreshCfBtn = document.getElementById('refreshCfBtn');
 
         unlockDevBtn.addEventListener('click', () => {
-            if (devCodeInput.value === '7777') { 
+            if (devCodeInput.value) { 
                 devUnlockContainer.style.display = 'none';
                 devHiddenControls.style.display = 'block';
                 devTitle.innerText = 'Developer Settings 🔓';
-                devCodeInput.value = '';
             } else {
-                triggerNotification('System', 'Incorrect Developer Code', true);
-                devCodeInput.value = '';
+                triggerNotification('System', 'PIN is required to unlock.', true);
+            }
+        });
+
+        refreshCfBtn.addEventListener('click', async () => {
+            const pin = devCodeInput.value.trim();
+            const success = await fetchCloudflareWithPin(pin);
+            if (success) {
+                triggerNotification('System', 'Cloudflare credentials refreshed!');
+                if (peerConnection && peerConnection.connectionState !== 'closed') {
+                    peerConnection.setConfiguration(rtcConfig);
+                    if (isController) {
+                        document.getElementById('routeBadge').innerText = '🔄 Hot-swapping...';
+                        if (peerConnection.restartIce) peerConnection.restartIce();
+                        const offer = await peerConnection.createOffer({ iceRestart: true });
+                        await peerConnection.setLocalDescription(offer);
+                        // Push new credentials to viewer instantly
+                        rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'turn_update', iceServers: rtcConfig.iceServers } });
+                        rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'offer', offer: offer } });
+                    }
+                }
+            } else {
+                triggerNotification('System', 'Failed to refresh. Check PIN.', true);
             }
         });
 
@@ -695,26 +725,24 @@
                 if (!Array.isArray(parsed)) throw new Error("Must be an array");
                 
                 rtcConfig.iceServers = parsed;
+                isUsingMetered = val.includes('metered.ca');
                 localStorage.setItem('customIceServers', val);
                 closeDrawer();
                 triggerNotification('System', 'Credentials successfully updated.');
 
                 if (peerConnection && peerConnection.connectionState !== 'closed') {
                     peerConnection.setConfiguration(rtcConfig);
-                    triggerNotification('System', 'Credentials injected into active stream.');
-                    
                     if (isController) {
                         document.getElementById('routeBadge').innerText = '🔄 Hot-swapping...';
                         if (peerConnection.restartIce) peerConnection.restartIce();
                         const offer = await peerConnection.createOffer({ iceRestart: true });
                         await peerConnection.setLocalDescription(offer);
+                        rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'turn_update', iceServers: rtcConfig.iceServers } });
                         rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'offer', offer: offer } });
-                    } else {
-                        triggerNotification('System', 'Tell Admin to click Reroute to apply.');
                     }
                 }
             } catch(e) {
-                alert("Invalid JSON format. Please check syntax.");
+                alert("Invalid JSON format.");
             }
         });
 
@@ -866,12 +894,6 @@
             document.getElementById('incomingCallToast').style.display = 'none';
             await startLocalCamera();
             rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'ready' } });
-            
-            if (isController) {
-                const offer = await peerConnection.createOffer(); 
-                await peerConnection.setLocalDescription(offer);
-                rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'offer', offer: offer } });
-            }
         });
 
         document.getElementById('declineCallBtn').addEventListener('click', () => {
@@ -911,9 +933,20 @@
                 if (data.type === 'ready') {
                     viewerReady = true;
                     if (isController && amIReady && peerConnection) {
+                        // Crucial: Push dynamic Cloudflare credentials to viewer right before creating offer
+                        rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'turn_update', iceServers: rtcConfig.iceServers } });
+                        
                         const offer = await peerConnection.createOffer(); 
                         await peerConnection.setLocalDescription(offer);
                         rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'offer', offer: offer } });
+                    }
+                }
+                else if (data.type === 'turn_update') {
+                    if (!isController) {
+                        // Viewer receives host's Cloudflare credentials seamlessly
+                        rtcConfig.iceServers = data.iceServers;
+                        isUsingMetered = JSON.stringify(data.iceServers).includes('metered.ca');
+                        console.log("Secure TURN credentials synced from Host.");
                     }
                 }
                 else if (data.type === 'offer') {
@@ -957,6 +990,9 @@
                             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
                             audio.volume = 0.5; audio.play().catch(e => {}); 
                         } catch(e) {}
+                    } else if (isController) {
+                        // If host is already ready, push credentials again just in case
+                        rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'turn_update', iceServers: rtcConfig.iceServers } });
                     }
                 }
                 else if (data.type === 'call_declined') {
@@ -1008,6 +1044,7 @@
         document.getElementById('sendChatBtn').addEventListener('click', sendChatMessage);
         chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChatMessage(); });
 
+        // --- ENHANCED 3-TIER DIAGNOSTICS POLLING ---
         function startDiagnosticsPolling() {
             if (statsInterval) clearInterval(statsInterval);
             document.getElementById('webrtcStatus').style.display = 'flex';
@@ -1032,8 +1069,17 @@
                             const remote = stats.get(activePair.remoteCandidateId);
                             
                             if (local?.candidateType === 'relay' || remote?.candidateType === 'relay') {
-                                badge.innerText = '☁️ TURN Relay Active';
-                                statusBox.className = 'webrtc-status turn';
+                                // Determine exactly which TURN server is executing the relay
+                                const relayUrl = local?.url || remote?.url || local?.relayProtocol || '';
+                                const isMeteredRelay = relayUrl.includes('metered.ca') || isUsingMetered;
+                                
+                                if (isMeteredRelay) {
+                                    badge.innerText = '⚠️ TURN (Metered CA) Active';
+                                    statusBox.className = 'webrtc-status turn';
+                                } else {
+                                    badge.innerText = '☁️ TURN (Cloudflare) Active';
+                                    statusBox.className = 'webrtc-status cf-turn';
+                                }
                                 restartBtn.style.display = 'block'; 
                             } else {
                                 badge.innerText = '⚡ Direct STUN Active';
@@ -1065,6 +1111,7 @@
                 if (peerConnection.restartIce) peerConnection.restartIce();
                 const offer = await peerConnection.createOffer({ iceRestart: true });
                 await peerConnection.setLocalDescription(offer);
+                rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'turn_update', iceServers: rtcConfig.iceServers } });
                 rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'offer', offer: offer } });
             } catch(e) { console.error("Reroute failed", e); }
         });
@@ -1162,7 +1209,7 @@
             peerConnection.oniceconnectionstatechange = () => {
                 if (peerConnection && (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed')) {
                     stopDiagnosticsPolling();
-                    triggerNotification('⚠️ Connection Error', 'Video connection dropped! If TURN limit exceeded, unlock Dev Settings and paste backup credentials.', true);
+                    triggerNotification('⚠️ Connection Error', 'Video connection dropped! If TURN limit exceeded, unlock Dev Settings and refresh/paste credentials.', true);
                     document.getElementById('webrtcStatus').style.display = 'flex';
                     document.getElementById('routeBadge').innerText = '❌ Connection Dropped';
                     document.getElementById('webrtcStatus').className = 'webrtc-status turn';
@@ -1338,13 +1385,26 @@
         video.addEventListener('stalled', () => { if (myRoomCode && activePlayerType === 'direct') updateVideoStatus("Connection unstable", true); });
         video.addEventListener('error', () => { if (myRoomCode && activePlayerType === 'direct') updateVideoStatus("Unable to load video", false); });
 
+        // --- ROOM CREATION WITH SECURE VAULT AUTHENTICATION ---
         document.getElementById('createBtn').addEventListener('click', async () => {
+            const pin = document.getElementById('adminPinInput').value.trim();
+            if (!pin) { alert("Please enter the Admin PIN to host a room."); return; }
+
+            const createBtn = document.getElementById('createBtn');
+            createBtn.innerText = "Authenticating...";
+            
+            // Wait to fetch credentials securely before creating room
+            const success = await fetchCloudflareWithPin(pin);
+            if (success) triggerNotification('Network', '☁️ Cloudflare 10GB Proxy Connected!');
+            else triggerNotification('Network', '⚠️ Cloudflare Proxy failed. Falling back to Metered 500MB.', true);
+
             const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
             const recoveryToken = 'rec_' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
             
             const { data, error } = await mySupabase.from('rooms').insert([{ room_code: otpCode, controller_id: mySessionId }]).select();
-            if (error) { alert("Error creating room: " + error.message); return; }
+            if (error) { alert("Error creating room: " + error.message); createBtn.innerText = "Create Room (Host)"; return; }
             
+            createBtn.innerText = "Create Room (Host)";
             myRoomCode = data[0].room_code;
             isController = true;
             myRecoveryKey = recoveryToken;
