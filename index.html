@@ -399,7 +399,7 @@
 
         <div class="social-sidebar">
             
-            <!-- NEW: WEBRTC NETWORK DIAGNOSTICS -->
+            <!-- WEBRTC NETWORK DIAGNOSTICS -->
             <div id="webrtcStatus" class="webrtc-status" style="display:none; margin-bottom: 0px;">
                 <span id="routeBadge">🔍 Locating Route...</span>
                 <button id="iceRestartBtn" style="display:none;" title="Attempt to establish a direct connection">⚡ Reroute</button>
@@ -495,7 +495,7 @@
                 </div>
             </div>
 
-            <!-- NEW: SECURE DEVELOPER SETTINGS -->
+            <!-- SECURE DEVELOPER SETTINGS -->
             <div id="devSettingsPanel" style="margin-top: 10px; display: none;">
                 <div class="drawer-section-title" id="devTitle">Developer Settings 🔒</div>
                 
@@ -519,6 +519,20 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmbWh1aGJkY2F5cnJrYW51bmduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxMzQxMDMsImV4cCI6MjEwNTcxMDEwM30.BhNw7rE_X-GfIoEB9KXRfNarFTHmL0wLigHA3ZvzKZY'; 
         const mySupabase = supabase.createClient(supabaseUrl, supabaseKey);
         
+        function triggerNotification(sender, text, isError = false) {
+            const container = document.getElementById('notification-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast' + (isError ? ' error' : '');
+            const shortText = text.length > 100 ? text.substring(0, 100) + '...' : text;
+            toast.innerHTML = `<span>💬</span> <div><b>${sender}:</b> ${shortText}</div>`;
+            container.appendChild(toast);
+            try {
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                audio.volume = 0.4; audio.play().catch(e => {}); 
+            } catch(e) {}
+            setTimeout(() => { toast.remove(); }, isError ? 7000 : 3800);
+        }
+
         const video = document.getElementById('myVideo');
         const ytPlayerWrapper = document.getElementById('ytPlayerWrapper');
         const pinnedVideo = document.getElementById('pinnedVideo');
@@ -600,16 +614,52 @@
         let statsInterval = null; 
         
         // --- MUTABLE TURN CREDENTIALS & DEV SETTINGS LOGIC ---
-        let rtcConfig = { 
-            iceServers: [
-                { urls: "stun:stun.relay.metered.ca:80" },
-                { urls: "turn:global.relay.metered.ca:80", username: "f6ff84fbc9578158dc0df2aa", credential: "901FDjBr8A2Z2w5+" },
-                { urls: "turn:global.relay.metered.ca:80?transport=tcp", username: "f6ff84fbc9578158dc0df2aa", credential: "901FDjBr8A2Z2w5+" },
-                { urls: "turn:global.relay.metered.ca:443", username: "f6ff84fbc9578158dc0df2aa", credential: "901FDjBr8A2Z2w5+" },
-                { urls: "turns:global.relay.metered.ca:443?transport=tcp", username: "f6ff84fbc9578158dc0df2aa", credential: "901FDjBr8A2Z2w5+" }
-            ] 
-        };
+        let rtcConfig = { iceServers: [] }; 
 
+        // Metered Backup Credentials
+        const fallbackMeteredServers = [
+          { "urls": "stun:stun.relay.metered.ca:80" },
+          { "urls": "turn:global.relay.metered.ca:80", "username": "ae1305948bfe3c70c3457862", "credential": "KlJ5MlRwsBgTcSB3" },
+          { "urls": "turn:global.relay.metered.ca:80?transport=tcp", "username": "ae1305948bfe3c70c3457862", "credential": "KlJ5MlRwsBgTcSB3" },
+          { "urls": "turn:global.relay.metered.ca:443", "username": "ae1305948bfe3c70c3457862", "credential": "KlJ5MlRwsBgTcSB3" },
+          { "urls": "turns:global.relay.metered.ca:443?transport=tcp", "username": "ae1305948bfe3c70c3457862", "credential": "KlJ5MlRwsBgTcSB3" }
+        ];
+
+        // Invisibly fetch 10GB Cloudflare Credentials via Hugging Face
+        async function loadCloudflareCredentials() {
+            try {
+                // Hardcoded HF Token
+                const HF_TOKEN = "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"; 
+                
+                const response = await fetch("https://fastrtc-turn-service.hf.space/credentials", { 
+                    method: 'GET',
+                    headers: { "Authorization": `Bearer ${HF_TOKEN}` }
+                });
+                
+                if (!response.ok) throw new Error("Fetch failed with status: " + response.status);
+                
+                const payload = await response.json();
+                
+                // FastRTC returns the Cloudflare credentials dynamically
+                const cloudflareServers = payload.iceServers ? payload.iceServers : payload;
+                
+                // Add Google's free STUN server to the front as the highest priority
+                cloudflareServers.unshift({ urls: "stun:stun.l.google.com:19302" });
+                
+                rtcConfig.iceServers = cloudflareServers;
+                console.log("Cloudflare 10GB TURN Credentials loaded securely!");
+                triggerNotification('Network', '☁️ Cloudflare 10GB Proxy Connected!');
+            } catch (e) {
+                console.error("Failed to load Cloudflare TURN, falling back to Metered", e);
+                rtcConfig.iceServers = fallbackMeteredServers;
+                triggerNotification('Network', '⚠️ Cloudflare Proxy failed. Falling back to Metered 500MB.', true);
+            }
+        }
+        
+        // Execute the fetch immediately when the page opens
+        loadCloudflareCredentials();
+
+        // Keep Developer Panel functional for manual overrides
         function loadCustomCredentials() {
             const saved = localStorage.getItem('customIceServers');
             if (saved) {
@@ -618,7 +668,7 @@
             const devInput = document.getElementById('devIceInput');
             if (devInput) devInput.value = JSON.stringify(rtcConfig.iceServers, null, 2);
         }
-        loadCustomCredentials();
+        setTimeout(loadCustomCredentials, 1500);
 
         const devCodeInput = document.getElementById('devCodeInput');
         const unlockDevBtn = document.getElementById('unlockDevBtn');
@@ -810,20 +860,6 @@
             if (matchId && matchId[1]) return `https://drive.google.com/uc?export=download&id=${matchId[1]}`;
             if (!val.includes('/') && !val.includes(':') && val.length > 10) return `https://drive.google.com/uc?export=download&id=${val}`;
             return val;
-        }
-
-        function triggerNotification(sender, text, isError = false) {
-            const container = document.getElementById('notification-container');
-            const toast = document.createElement('div');
-            toast.className = 'toast' + (isError ? ' error' : '');
-            const shortText = text.length > 100 ? text.substring(0, 100) + '...' : text;
-            toast.innerHTML = `<span>💬</span> <div><b>${sender}:</b> ${shortText}</div>`;
-            container.appendChild(toast);
-            try {
-                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-                audio.volume = 0.4; audio.play().catch(e => {}); 
-            } catch(e) {}
-            setTimeout(() => { toast.remove(); }, isError ? 7000 : 3800);
         }
 
         document.getElementById('acceptCallBtn').addEventListener('click', async () => {
