@@ -7,7 +7,6 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
 
     <style>
         :root {
@@ -62,9 +61,11 @@
 
         /* --- ENTRY GATE --- */
         #entryGate { position: fixed; inset: 0; background: rgba(9,9,11,0.92); backdrop-filter: blur(6px); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
-        .gate-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+        .gate-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); display: none; }
+        .gate-card.active { display: block; animation: fadeIn 0.2s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
         .gate-card h2 { font-size: 20px; margin-bottom: 6px; }
-        .gate-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5; }
+        .gate-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
 
         /* --- MAIN STAGE --- */
         .main-stage { display: flex; flex: 1; min-height: 0; max-width: 1600px; margin: 0 auto; width: 100%; padding: 16px 24px; gap: 16px; align-items: stretch; }
@@ -92,7 +93,7 @@
 
         .pl-controls { position: absolute; left: 0; right: 0; bottom: 0; z-index: 14; padding: 40px 16px 10px; background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 55%, transparent 100%); opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s ease; display: none; user-select: none; }
         .player-wrapper.has-media.show-ui .pl-controls { opacity: 1; visibility: visible; }
-        .player-wrapper.has-media.direct .pl-controls { display: block; }
+        .player-wrapper.has-media .pl-controls { display: block; }
         .player-wrapper.is-idle .pl-controls, .player-wrapper.is-idle .seek-btn, .player-wrapper.is-idle .pl-badge { opacity: 0 !important; visibility: hidden !important; }
 
         .pl-timeline { position: relative; height: 18px; display: flex; align-items: center; cursor: pointer; touch-action: none; }
@@ -135,8 +136,7 @@
         .pl-badge.viewer .dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
         .player-wrapper.has-media .pl-badge { display: flex; }
         .player-wrapper.has-media.show-ui .pl-badge { opacity: 1; visibility: visible; }
-        .player-wrapper.has-media:not(.direct) .pl-badge { top: auto; bottom: 56px; right: 14px; }
-        .player-wrapper:not(.direct) .pl-spinner, .player-wrapper:not(.direct) .pl-center { display: none !important; }
+        .player-wrapper .pl-spinner, .player-wrapper .pl-center { display: none !important; }
 
         .pl-center { position: absolute; top: 50%; left: 50%; z-index: 13; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 50%; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; color: #fff; pointer-events: none; opacity: 0; transform: scale(0.8); }
         .pl-center svg { width: 34px; height: 34px; fill: currentColor; }
@@ -144,7 +144,7 @@
         @keyframes plFlash { 0% { opacity: 0.95; transform: scale(0.8); } 100% { opacity: 0; transform: scale(1.35); } }
 
         .pl-spinner { position: absolute; top: 50%; left: 50%; z-index: 13; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.18); border-top-color: #fff; animation: plSpin 0.8s linear infinite; display: none; pointer-events: none; }
-        .pl-spinner.on { display: block; }
+        .pl-spinner.on { display: block !important; }
         @keyframes plSpin { to { transform: rotate(360deg); } }
 
         .pl-empty { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--text-muted); pointer-events: none; background: radial-gradient(ellipse at center, #18181b 0%, #09090b 75%); }
@@ -152,9 +152,6 @@
         .pl-empty b { font-size: 15px; color: var(--text-main); font-weight: 600; }
         .pl-empty span { font-size: 12.5px; }
         .player-wrapper.has-media .pl-empty { display: none; }
-
-        #ytPlayerWrapper { display: none; width: 100%; height: 100%; z-index: 1; }
-        #ytPlayerContainer { width: 100%; height: 100%; border: none; }
 
         video#pinnedVideo { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; z-index: 10; background: #09090b; }
         .unpin-btn { display: none; position: absolute; top: 16px; right: 16px; z-index: 11; padding: 8px 16px; background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; font-weight: 600; cursor: pointer; backdrop-filter: blur(4px); transition: 0.2s; }
@@ -282,25 +279,43 @@
         </div>
     </div>
 
-    <!-- RESTRUCTURED ENTRY GATE -->
+    <!-- RESTRUCTURED PROGRESSIVE ENTRY GATE -->
     <div id="entryGate">
-        <div class="gate-card">
+        <!-- Step 1: Main Menu -->
+        <div class="gate-card active" id="gateStep1">
             <h2>🎬 Private Theatre</h2>
-            <p>Create a room, join with a 6-digit OTP code, or recover admin access.</p>
+            <p>Select an option to get started.</p>
             
-            <div class="divider" style="margin-top: 5px;"><span>HOST ROOM</span></div>
-            <input type="password" id="adminPinInput" class="link-input" placeholder="Admin PIN" style="text-align: center; font-weight: bold; letter-spacing: 2px;">
-            <button class="btn btn-primary" id="createBtn" style="margin-bottom: 14px;">Create Room (Host)</button>
+            <button class="btn btn-primary" id="showCreateBtn" style="margin-bottom: 14px;">Create Room (Host)</button>
             
-            <div class="divider"><span>JOIN ROOM</span></div>
+            <div class="divider"><span>OR JOIN</span></div>
             <div class="input-group">
                 <input type="text" id="joinInput" placeholder="6-DIGIT CODE" maxlength="6" inputmode="numeric" pattern="[0-9]*">
                 <button class="btn btn-secondary" id="joinBtn" style="width: 80px;">Join</button>
             </div>
 
-            <div class="divider"><span>RECOVER ADMIN</span></div>
-            <input type="text" id="recoveryInput" class="link-input" placeholder="Paste Admin Recovery Key..." style="text-align: center; font-size: 12px;">
-            <button class="btn btn-secondary" id="recoverAdminBtn" style="margin-top: 4px; font-size: 13px;">Recover Admin Session</button>
+            <div class="divider"><span>RECOVER</span></div>
+            <button class="btn btn-secondary" id="showRecoverBtn" style="font-size: 13px;">Recover Admin Session</button>
+        </div>
+
+        <!-- Step 2A: Host Room Auth -->
+        <div class="gate-card" id="gateCreate">
+            <h2>Host a Room</h2>
+            <p>Enter your Admin PIN to securely fetch network credentials.</p>
+            
+            <input type="password" id="adminPinInput" class="link-input" placeholder="Admin PIN" style="text-align: center; font-weight: bold; letter-spacing: 2px;">
+            <button class="btn btn-primary" id="createBtn" style="margin-bottom: 10px;">Start Hosting</button>
+            <button class="btn btn-secondary" id="backFromCreateBtn">Back</button>
+        </div>
+
+        <!-- Step 2B: Recover Session Auth -->
+        <div class="gate-card" id="gateRecover">
+            <h2>Recover Session</h2>
+            <p>Paste your Admin Recovery Key below.</p>
+            
+            <input type="text" id="recoveryInput" class="link-input" placeholder="Recovery Key..." style="text-align: center; font-size: 12px;">
+            <button class="btn btn-primary" id="recoverAdminBtn" style="margin-bottom: 10px;">Recover Admin Session</button>
+            <button class="btn btn-secondary" id="backFromRecoverBtn">Back</button>
         </div>
     </div>
 
@@ -319,7 +334,7 @@
                 <div class="pl-empty" id="plEmpty">
                     <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                     <b>Nothing playing yet</b>
-                    <span id="plEmptySub">Create or join a room to begin</span>
+                    <span id="plEmptySub">Open Settings (N) and broadcast a video</span>
                 </div>
 
                 <video id="myVideo" preload="metadata" playsinline></video>
@@ -355,10 +370,6 @@
                 <button class="seek-btn right" id="seekFwdBtn" title="Skip 10 seconds" aria-label="Skip 10 seconds">
                     <svg viewBox="0 0 24 24"><path d="M12 5V2.5L16.2 6 12 9.5V7a6 6 0 1 0 6 6"/><text x="12" y="16.1">10</text></svg>
                 </button>
-
-                <div id="ytPlayerWrapper">
-                    <div id="ytPlayerContainer"></div>
-                </div>
 
                 <video id="pinnedVideo" autoplay playsinline muted></video>
                 <button class="unpin-btn" id="unpinBtn">❌ Close Pin</button>
@@ -474,29 +485,18 @@
                     <button class="btn btn-secondary" id="copyRecoveryBtn" style="font-size: 12px; padding: 8px;">📋 Copy Recovery Key</button>
                 </div>
                 <p id="notConnectedNote" style="font-size: 13px; color: var(--text-muted);">Not connected to a room yet.</p>
-                <button class="btn btn-danger" id="leaveRoomBtn" style="display:none; margin-top: 12px;">🚪 Leave Room</button>
+                <button class="btn btn-danger" id="leaveRoomBtn" style="display:none; margin-top: 12px;">🚪 Leave Room (Reset App)</button>
             </div>
 
             <div id="adminVideoPanel" style="display:none;">
                 <div class="drawer-section-title">Host Controls</div>
-                
-                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                    <button class="btn btn-secondary" id="tabDirect" style="flex: 1; border-color: var(--brand);">Direct Video</button>
-                    <button class="btn btn-secondary" id="tabYoutube" style="flex: 1;">YouTube</button>
-                </div>
 
                 <div id="panelDirect">
                     <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;">Paste the <b>Dropbox Link</b> or <b>Cloudflare R2 Link</b> below.</p>
                     <input type="text" id="url720" class="link-input" placeholder="720p Link">
                     <input type="text" id="url480" class="link-input" placeholder="480p Link (Optional)">
                     <input type="text" id="url360" class="link-input" placeholder="360p Link (Optional)">
-                    <button class="btn btn-primary" id="broadcastBtn" style="background: #db2777;">Broadcast Direct Video</button>
-                </div>
-
-                <div id="panelYoutube" style="display: none;">
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;">Paste a <b>YouTube</b> video link below.</p>
-                    <input type="text" id="ytUrlInput" class="link-input" placeholder="https://www.youtube.com/watch?v=...">
-                    <button class="btn btn-primary" id="broadcastYtBtn" style="background: #ef4444;">Broadcast YouTube</button>
+                    <button class="btn btn-primary" id="broadcastBtn" style="background: #db2777;">Broadcast Video</button>
                 </div>
             </div>
 
@@ -540,7 +540,6 @@
         }
 
         const video = document.getElementById('myVideo');
-        const ytPlayerWrapper = document.getElementById('ytPlayerWrapper');
         const pinnedVideo = document.getElementById('pinnedVideo');
         const unpinBtn = document.getElementById('unpinBtn');
         const localVideo = document.getElementById('localVideo');
@@ -556,6 +555,10 @@
         const topStatus = document.getElementById('topStatus');
 
         const entryGate = document.getElementById('entryGate');
+        const gateStep1 = document.getElementById('gateStep1');
+        const gateCreate = document.getElementById('gateCreate');
+        const gateRecover = document.getElementById('gateRecover');
+
         const gearBtn = document.getElementById('gearBtn');
         const settingsDrawer = document.getElementById('settingsDrawer');
         const settingsOverlay = document.getElementById('settingsOverlay');
@@ -567,25 +570,6 @@
         const adminRecoveryContainer = document.getElementById('adminRecoveryContainer');
         const recoveryKeyBox = document.getElementById('recoveryKeyBox');
         const leaveRoomBtn = document.getElementById('leaveRoomBtn');
-
-        const tabDirect = document.getElementById('tabDirect');
-        const tabYoutube = document.getElementById('tabYoutube');
-        const panelDirect = document.getElementById('panelDirect');
-        const panelYoutube = document.getElementById('panelYoutube');
-
-        tabDirect.addEventListener('click', () => {
-            tabDirect.style.borderColor = 'var(--brand)';
-            tabYoutube.style.borderColor = 'transparent';
-            panelDirect.style.display = 'block';
-            panelYoutube.style.display = 'none';
-        });
-
-        tabYoutube.addEventListener('click', () => {
-            tabYoutube.style.borderColor = 'var(--brand)';
-            tabDirect.style.borderColor = 'transparent';
-            panelYoutube.style.display = 'block';
-            panelDirect.style.display = 'none';
-        });
 
         function openDrawer() { settingsDrawer.classList.add('open'); settingsOverlay.classList.add('open'); }
         function closeDrawer() { settingsDrawer.classList.remove('open'); settingsOverlay.classList.remove('open'); }
@@ -599,6 +583,24 @@
                     box.classList.toggle('active-controls');
                 }
             });
+        });
+
+        // --- ENTRY GATE NAVIGATION LOGIC ---
+        document.getElementById('showCreateBtn').addEventListener('click', () => {
+            gateStep1.classList.remove('active');
+            gateCreate.classList.add('active');
+        });
+        document.getElementById('backFromCreateBtn').addEventListener('click', () => {
+            gateCreate.classList.remove('active');
+            gateStep1.classList.add('active');
+        });
+        document.getElementById('showRecoverBtn').addEventListener('click', () => {
+            gateStep1.classList.remove('active');
+            gateRecover.classList.add('active');
+        });
+        document.getElementById('backFromRecoverBtn').addEventListener('click', () => {
+            gateRecover.classList.remove('active');
+            gateStep1.classList.add('active');
         });
 
         let myRoomCode = "";
@@ -621,7 +623,7 @@
         
         // --- SECURE TURN VAULT & CREDENTIALS ---
         let rtcConfig = { iceServers: [] }; 
-        let isUsingMetered = true; // Tracks the active infrastructure provider
+        let isUsingMetered = true; 
 
         const fallbackMeteredServers = [
           { "urls": "stun:stun.relay.metered.ca:80" },
@@ -631,7 +633,6 @@
           { "urls": "turns:global.relay.metered.ca:443?transport=tcp", "username": "ae1305948bfe3c70c3457862", "credential": "KlJ5MlRwsBgTcSB3" }
         ];
 
-        // Attempt to load previously active credentials immediately on page load
         const savedTurn = localStorage.getItem('private_theater_turn');
         if (savedTurn) {
             try { 
@@ -642,14 +643,11 @@
             rtcConfig.iceServers = fallbackMeteredServers;
         }
 
-        // The secure backend fetch function using PIN
         async function fetchCloudflareWithPin(pin) {
             try {
-                // 1. Ask Supabase for the hidden Hugging Face token using the PIN
                 const { data: hfToken, error } = await mySupabase.rpc('get_hf_token', { provided_pin: pin });
                 if (error || !hfToken) throw new Error("Invalid PIN or Database error.");
                 
-                // 2. Fetch the 10GB Cloudflare Servers using the secured token
                 const response = await fetch("https://fastrtc-turn-service.hf.space/credentials", { 
                     method: 'GET',
                     headers: { "Authorization": `Bearer ${hfToken}` }
@@ -661,7 +659,6 @@
                 const cloudflareServers = payload.iceServers ? payload.iceServers : payload;
                 cloudflareServers.unshift({ urls: "stun:stun.l.google.com:19302" });
                 
-                // 3. Inject and save them
                 rtcConfig.iceServers = cloudflareServers;
                 isUsingMetered = false;
                 localStorage.setItem('private_theater_turn', JSON.stringify(cloudflareServers));
@@ -678,7 +675,16 @@
             }
         }
 
-        // --- DEVELOPER PANEL CONTROLS ---
+        function loadCustomCredentials() {
+            const saved = localStorage.getItem('customIceServers');
+            if (saved) {
+                try { rtcConfig.iceServers = JSON.parse(saved); } catch(e) {}
+            }
+            const devInput = document.getElementById('devIceInput');
+            if (devInput) devInput.value = JSON.stringify(rtcConfig.iceServers, null, 2);
+        }
+        setTimeout(loadCustomCredentials, 1500);
+
         const devCodeInput = document.getElementById('devCodeInput');
         const unlockDevBtn = document.getElementById('unlockDevBtn');
         const devHiddenControls = document.getElementById('devHiddenControls');
@@ -708,7 +714,6 @@
                         if (peerConnection.restartIce) peerConnection.restartIce();
                         const offer = await peerConnection.createOffer({ iceRestart: true });
                         await peerConnection.setLocalDescription(offer);
-                        // Push new credentials to viewer instantly
                         rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'turn_update', iceServers: rtcConfig.iceServers } });
                         rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'offer', offer: offer } });
                     }
@@ -746,41 +751,7 @@
             }
         });
 
-        let ytPlayer;
-        let ytPlayerReady = false;
-        let activePlayerType = 'none'; 
-
-        window.onYouTubeIframeAPIReady = function() {
-            ytPlayer = new YT.Player('ytPlayerContainer', {
-                height: '100%',
-                width: '100%',
-                videoId: '',
-                playerVars: { 'autoplay': 0, 'controls': 1, 'rel': 0, 'modestbranding': 1, 'disablekb': 1 },
-                events: {
-                    'onReady': () => { ytPlayerReady = true; },
-                    'onStateChange': onYtPlayerStateChange,
-                    'onError': () => { if (myRoomCode && activePlayerType === 'youtube') updateVideoStatus("This YouTube video cannot be embedded.", false); }
-                }
-            });
-        };
-
-        function onYtPlayerStateChange(event) {
-            if (!myRoomCode || activePlayerType !== 'youtube') return;
-            if (event.data === YT.PlayerState.PLAYING) {
-                if (isController) mySupabase.from('rooms').update({ playback_state: 'playing', position: ytPlayer.getCurrentTime() }).eq('room_code', myRoomCode);
-                else if (adminState === 'paused') { ytPlayer.pauseVideo(); updateVideoStatus("Paused by Admin", false); }
-                else updateVideoStatus("Synced", false, 2000);
-            } else if (event.data === YT.PlayerState.PAUSED) {
-                if (isController) mySupabase.from('rooms').update({ playback_state: 'paused', position: ytPlayer.getCurrentTime() }).eq('room_code', myRoomCode);
-                else if (adminState === 'playing') ytPlayer.playVideo();
-            } else if (event.data === YT.PlayerState.BUFFERING) {
-                if (!isController && adminState === 'paused') updateVideoStatus("Paused by Admin", false);
-                else updateVideoStatus("Buffering...", true);
-            }
-        }
-
         video.addEventListener('play', async () => { 
-            if (activePlayerType !== 'direct') return;
             if (isController && myRoomCode) {
                 await mySupabase.from('rooms').update({ playback_state: 'playing', position: video.currentTime }).eq('room_code', myRoomCode);
             } else if (!isController && adminState === 'paused') { 
@@ -789,14 +760,12 @@
         });
         
         video.addEventListener('pause', async () => { 
-            if (activePlayerType !== 'direct') return;
             if (isController && myRoomCode) {
                 await mySupabase.from('rooms').update({ playback_state: 'paused', position: video.currentTime }).eq('room_code', myRoomCode);
             } else if (!isController && adminState === 'playing') video.play();
         });
         
         video.addEventListener('seeked', async () => { 
-            if (activePlayerType !== 'direct') return;
             if (isController && myRoomCode) {
                 await mySupabase.from('rooms').update({ position: video.currentTime }).eq('room_code', myRoomCode);
             } else if (!isController) { 
@@ -805,37 +774,10 @@
         });
         
         video.addEventListener('ratechange', async () => { 
-            if (activePlayerType !== 'direct') return;
             if (isController && myRoomCode) {
                 await mySupabase.from('rooms').update({ playback_speed: video.playbackRate }).eq('room_code', myRoomCode);
             }
         });
-
-        function getActiveTime() {
-            if (activePlayerType === 'youtube' && ytPlayerReady && ytPlayer.getCurrentTime) return ytPlayer.getCurrentTime() || 0;
-            if (activePlayerType === 'direct') return video.currentTime;
-            return 0;
-        }
-
-        function seekActiveMedia(time) {
-            if (activePlayerType === 'youtube' && ytPlayerReady) ytPlayer.seekTo(time, true);
-            else if (activePlayerType === 'direct') video.currentTime = time;
-        }
-
-        function playActiveMedia() {
-            if (activePlayerType === 'youtube' && ytPlayerReady) ytPlayer.playVideo();
-            else if (activePlayerType === 'direct') video.play().catch(e => {});
-        }
-
-        function pauseActiveMedia() {
-            if (activePlayerType === 'youtube' && ytPlayerReady) ytPlayer.pauseVideo();
-            else if (activePlayerType === 'direct') video.pause();
-        }
-
-        function setPlaybackSpeed(speed) {
-            if (activePlayerType === 'youtube' && ytPlayerReady && ytPlayer.setPlaybackRate) ytPlayer.setPlaybackRate(speed);
-            else if (activePlayerType === 'direct') video.playbackRate = speed;
-        }
 
         function dismissGate() { entryGate.style.display = 'none'; }
 
@@ -933,9 +875,7 @@
                 if (data.type === 'ready') {
                     viewerReady = true;
                     if (isController && amIReady && peerConnection) {
-                        // Crucial: Push dynamic Cloudflare credentials to viewer right before creating offer
                         rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'turn_update', iceServers: rtcConfig.iceServers } });
-                        
                         const offer = await peerConnection.createOffer(); 
                         await peerConnection.setLocalDescription(offer);
                         rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'offer', offer: offer } });
@@ -943,7 +883,6 @@
                 }
                 else if (data.type === 'turn_update') {
                     if (!isController) {
-                        // Viewer receives host's Cloudflare credentials seamlessly
                         rtcConfig.iceServers = data.iceServers;
                         isUsingMetered = JSON.stringify(data.iceServers).includes('metered.ca');
                         console.log("Secure TURN credentials synced from Host.");
@@ -991,7 +930,6 @@
                             audio.volume = 0.5; audio.play().catch(e => {}); 
                         } catch(e) {}
                     } else if (isController) {
-                        // If host is already ready, push credentials again just in case
                         rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'turn_update', iceServers: rtcConfig.iceServers } });
                     }
                 }
@@ -1044,7 +982,6 @@
         document.getElementById('sendChatBtn').addEventListener('click', sendChatMessage);
         chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChatMessage(); });
 
-        // --- ENHANCED 3-TIER DIAGNOSTICS POLLING ---
         function startDiagnosticsPolling() {
             if (statsInterval) clearInterval(statsInterval);
             document.getElementById('webrtcStatus').style.display = 'flex';
@@ -1069,7 +1006,6 @@
                             const remote = stats.get(activePair.remoteCandidateId);
                             
                             if (local?.candidateType === 'relay' || remote?.candidateType === 'relay') {
-                                // Determine exactly which TURN server is executing the relay
                                 const relayUrl = local?.url || remote?.url || local?.relayProtocol || '';
                                 const isMeteredRelay = relayUrl.includes('metered.ca') || isUsingMetered;
                                 
@@ -1292,64 +1228,40 @@
             let data;
             try { data = JSON.parse(jsonString); } catch(e) { return; }
             
-            const sourceType = data.type || 'direct';
-
-            if (sourceType === 'youtube') {
-                activePlayerType = 'youtube';
-                video.style.display = 'none';
-                ytPlayerWrapper.style.display = 'block';
-                qualityContainer.style.display = 'none';
-                
-                if (ytPlayerReady) {
-                    ytPlayer.loadVideoById(data.videoId);
-                    updateVideoStatus("Loading YouTube video...", true, 2000);
-                    document.getElementById('videoInfoText').innerText = "YouTube Stream Active.";
-                    document.getElementById('videoInfoText').style.color = "var(--success)";
-                    speedContainer.style.display = "flex";
-                } else {
-                    setTimeout(() => applyVideoSources(jsonString), 500);
+            const urls = data.urls || data; 
+            qualitySelect.innerHTML = ""; 
+            let firstAvailableUrl = "";
+            
+            const savedQ = localStorage.getItem('private_theater_quality');
+            const pref = [savedQ, '480p', '360p', '720p'].filter(Boolean);
+            ['720p', '480p', '360p'].forEach(q => {
+                if (urls[q]) {
+                    const opt = document.createElement('option'); opt.value = urls[q]; opt.text = q;
+                    qualitySelect.appendChild(opt);
                 }
-            } else {
-                activePlayerType = 'direct';
-                video.style.display = 'block';
-                ytPlayerWrapper.style.display = 'none';
-                
-                const urls = data.urls || data; 
-                qualitySelect.innerHTML = ""; 
-                let firstAvailableUrl = "";
-                
-                const savedQ = localStorage.getItem('private_theater_quality');
-                const pref = [savedQ, '480p', '360p', '720p'].filter(Boolean);
-                ['720p', '480p', '360p'].forEach(q => {
-                    if (urls[q]) {
-                        const opt = document.createElement('option'); opt.value = urls[q]; opt.text = q;
-                        qualitySelect.appendChild(opt);
-                    }
-                });
-                for (const q of pref) { if (urls[q]) { firstAvailableUrl = urls[q]; qualitySelect.value = urls[q]; break; } }
+            });
+            for (const q of pref) { if (urls[q]) { firstAvailableUrl = urls[q]; qualitySelect.value = urls[q]; break; } }
 
-                if (firstAvailableUrl) {
-                    updateVideoStatus("Loading video...", true);
-                    const time = video.currentTime; const speed = video.playbackRate; const paused = video.paused;
-                    video.src = firstAvailableUrl; video.currentTime = time; video.playbackRate = speed;
-                    if (!paused) video.play();
-                    
-                    qualityContainer.style.display = "flex";
-                    speedContainer.style.display = "flex";
-                    if (window.refreshPlayerRole) window.refreshPlayerRole();
-                    document.getElementById('videoInfoText').innerText = "Live Stream Active.";
-                    document.getElementById('videoInfoText').style.color = "var(--success)";
-                }
+            if (firstAvailableUrl) {
+                updateVideoStatus("Loading video...", true);
+                const time = video.currentTime; const speed = video.playbackRate; const paused = video.paused;
+                video.src = firstAvailableUrl; video.currentTime = time; video.playbackRate = speed;
+                if (!paused) video.play();
+                
+                qualityContainer.style.display = "flex";
+                speedContainer.style.display = "flex";
+                if (window.refreshPlayerRole) window.refreshPlayerRole();
+                document.getElementById('videoInfoText').innerText = "Live Stream Active.";
+                document.getElementById('videoInfoText').style.color = "var(--success)";
             }
         }
 
         speedSelect.addEventListener('change', (e) => {
-            if (isController) setPlaybackSpeed(parseFloat(e.target.value));
-            else e.target.value = activePlayerType === 'youtube' && ytPlayerReady ? ytPlayer.getPlaybackRate() : video.playbackRate; 
+            if (isController) video.playbackRate = parseFloat(e.target.value);
+            else e.target.value = video.playbackRate; 
         });
 
         qualitySelect.addEventListener('change', (e) => {
-            if (activePlayerType !== 'direct') return;
             localStorage.setItem('private_theater_quality', qualitySelect.options[qualitySelect.selectedIndex].text);
             const time = video.currentTime; const speed = video.playbackRate; const paused = video.paused;
             video.src = e.target.value; video.currentTime = time; video.playbackRate = speed;
@@ -1357,33 +1269,33 @@
         });
 
         document.getElementById('seekBackBtn').addEventListener('click', () => {
-            if (isController) seekActiveMedia(Math.max(0, getActiveTime() - 10));
+            if (isController) video.currentTime = Math.max(0, video.currentTime - 10);
         });
         document.getElementById('seekFwdBtn').addEventListener('click', () => {
-            if (isController) seekActiveMedia(getActiveTime() + 10);
+            if (isController) video.currentTime += 10;
         });
 
         video.addEventListener('keydown', (e) => {
             if(['ArrowRight', 'ArrowLeft', ' '].includes(e.key)) e.preventDefault();
         });
 
-        video.addEventListener('loadstart', () => { if (myRoomCode && activePlayerType === 'direct') updateVideoStatus("Loading video...", true); });
-        video.addEventListener('loadedmetadata', () => { if (myRoomCode && activePlayerType === 'direct') updateVideoStatus("Synced", false, 2500); });
-        video.addEventListener('canplay', () => { if (myRoomCode && activePlayerType === 'direct') updateVideoStatus("Synced", false, 2500); });
+        video.addEventListener('loadstart', () => { if (myRoomCode) updateVideoStatus("Loading video...", true); });
+        video.addEventListener('loadedmetadata', () => { if (myRoomCode) updateVideoStatus("Synced", false, 2500); });
+        video.addEventListener('canplay', () => { if (myRoomCode) updateVideoStatus("Synced", false, 2500); });
         video.addEventListener('playing', () => { 
-            if (myRoomCode && activePlayerType === 'direct') {
+            if (myRoomCode) {
                 if (!isController && adminState === 'paused') { video.pause(); updateVideoStatus("Paused by Admin", false); } 
                 else updateVideoStatus("Synced", false, 2000);
             }
         });
         video.addEventListener('waiting', () => { 
-            if (myRoomCode && activePlayerType === 'direct') {
+            if (myRoomCode) {
                 if (adminState === 'paused') updateVideoStatus("Paused by Admin", false);
                 else updateVideoStatus("Buffering...", true);
             }
         });
-        video.addEventListener('stalled', () => { if (myRoomCode && activePlayerType === 'direct') updateVideoStatus("Connection unstable", true); });
-        video.addEventListener('error', () => { if (myRoomCode && activePlayerType === 'direct') updateVideoStatus("Unable to load video", false); });
+        video.addEventListener('stalled', () => { if (myRoomCode) updateVideoStatus("Connection unstable", true); });
+        video.addEventListener('error', () => { if (myRoomCode) updateVideoStatus("Unable to load video", false); });
 
         // --- ROOM CREATION WITH SECURE VAULT AUTHENTICATION ---
         document.getElementById('createBtn').addEventListener('click', async () => {
@@ -1393,7 +1305,6 @@
             const createBtn = document.getElementById('createBtn');
             createBtn.innerText = "Authenticating...";
             
-            // Wait to fetch credentials securely before creating room
             const success = await fetchCloudflareWithPin(pin);
             if (success) triggerNotification('Network', '☁️ Cloudflare 10GB Proxy Connected!');
             else triggerNotification('Network', '⚠️ Cloudflare Proxy failed. Falling back to Metered 500MB.', true);
@@ -1402,9 +1313,9 @@
             const recoveryToken = 'rec_' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
             
             const { data, error } = await mySupabase.from('rooms').insert([{ room_code: otpCode, controller_id: mySessionId }]).select();
-            if (error) { alert("Error creating room: " + error.message); createBtn.innerText = "Create Room (Host)"; return; }
+            if (error) { alert("Error creating room: " + error.message); createBtn.innerText = "Start Hosting"; return; }
             
-            createBtn.innerText = "Create Room (Host)";
+            createBtn.innerText = "Start Hosting";
             myRoomCode = data[0].room_code;
             isController = true;
             myRecoveryKey = recoveryToken;
@@ -1430,10 +1341,10 @@
                 setupActiveRoomUI(false, myRoomCode, "");
 
                 if (data.video_url) applyVideoSources(data.video_url);
-                if (data.position) { seekActiveMedia(data.position); adminTime = data.position; }
-                if (data.playback_speed) { setPlaybackSpeed(data.playback_speed); speedSelect.value = data.playback_speed; }
+                if (data.position) { video.currentTime = data.position; adminTime = data.position; }
+                if (data.playback_speed) { video.playbackRate = data.playback_speed; speedSelect.value = data.playback_speed; }
                 if (data.playback_state) adminState = data.playback_state;
-                if (adminState === 'playing') playActiveMedia();
+                if (adminState === 'playing') video.play().catch(e => {});
             } else { alert("Please enter a valid 6-digit room code."); }
         });
 
@@ -1466,10 +1377,10 @@
             setupActiveRoomUI(true, myRoomCode, myRecoveryKey);
 
             if (roomData.video_url) applyVideoSources(roomData.video_url);
-            if (roomData.position) { seekActiveMedia(roomData.position); adminTime = roomData.position; }
-            if (roomData.playback_speed) { setPlaybackSpeed(roomData.playback_speed); speedSelect.value = roomData.playback_speed; }
+            if (roomData.position) { video.currentTime = roomData.position; adminTime = roomData.position; }
+            if (roomData.playback_speed) { video.playbackRate = roomData.playback_speed; speedSelect.value = roomData.playback_speed; }
             if (roomData.playback_state) adminState = roomData.playback_state;
-            if (adminState === 'playing') playActiveMedia();
+            if (adminState === 'playing') video.play().catch(e => {});
 
             alert("Admin privileges successfully recovered!");
         });
@@ -1553,67 +1464,23 @@
         });
 
         leaveRoomBtn.addEventListener('click', () => {
-            if (!confirm("Are you sure you want to leave the room?")) return;
-            destroyCurrentSession(true);
-        });
-
-        function destroyCurrentSession(showGate = true) {
-            endVideoCall();
-
-            if (rtcChannel) { mySupabase.removeChannel(rtcChannel); rtcChannel = null; }
-            if (syncChannel) { mySupabase.removeChannel(syncChannel); syncChannel = null; }
-
+            if (!confirm("Are you sure you want to leave the room? This will clear all data and completely reset the app.")) return;
+            
+            // Wipe all associated data to ensure a completely fresh state
             localStorage.removeItem('private_theater_session');
-            myRoomCode = "";
-            isController = false;
-            currentVideoJson = "";
-            myRecoveryKey = "";
-
-            video.pause();
-            video.src = "";
-            if (ytPlayerReady && activePlayerType === 'youtube') ytPlayer.stopVideo();
-            activePlayerType = 'none';
-            if (window.refreshPlayerRole) window.refreshPlayerRole();
-            video.style.display = 'block';
-            ytPlayerWrapper.style.display = 'none';
+            localStorage.removeItem('private_theater_turn');
             
-            qualityContainer.style.display = 'none';
-            speedContainer.style.display = 'none';
-            speedSelect.value = '1';
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                if (localStorage.key(i).startsWith('private_theater_recovery_')) {
+                    keysToRemove.push(localStorage.key(i));
+                }
+            }
+            keysToRemove.forEach(k => localStorage.removeItem(k));
             
-            document.getElementById('videoInfoText').innerText = "Create or join a room below to begin...";
-            document.getElementById('videoInfoText').style.color = "var(--text-muted)";
-            videoStatusOverlay.style.display = 'none';
-
-            topStatus.innerText = "Not Connected";
-            topStatus.className = "status-badge";
-            
-            roomCodeDisplay.style.display = 'none';
-            adminVideoPanel.style.display = 'none';
-            adminRecoveryContainer.style.display = 'none';
-            document.getElementById('devSettingsPanel').style.display = 'none';
-            
-            document.getElementById('devUnlockContainer').style.display = 'flex';
-            document.getElementById('devHiddenControls').style.display = 'none';
-            document.getElementById('devTitle').innerText = 'Developer Settings 🔒';
-            
-            leaveRoomBtn.style.display = 'none';
-            notConnectedNote.style.display = 'block';
-            
-            document.querySelector('.player-wrapper').classList.remove('is-admin');
-            
-            const pText = document.getElementById('presenceText');
-            const pDot = document.getElementById('presenceDot');
-            pText.innerText = "Offline";
-            pDot.style.background = "var(--text-muted)";
-
-            document.getElementById('chatInput').disabled = true;
-            document.getElementById('sendChatBtn').disabled = true;
-            document.getElementById('chatMessages').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 11px; margin-top: auto;">Join a room to chat</div>';
-
-            closeDrawer();
-            if (showGate) { entryGate.style.display = 'flex'; }
-        }
+            // Hard refresh forces a completely clean application state
+            window.location.reload();
+        });
 
         window.addEventListener('DOMContentLoaded', async () => {
             const savedSession = localStorage.getItem('private_theater_session');
@@ -1637,34 +1504,15 @@
                 setupActiveRoomUI(isController, myRoomCode, myRecoveryKey);
 
                 if (roomData.video_url) applyVideoSources(roomData.video_url);
-                if (roomData.position) { seekActiveMedia(roomData.position); adminTime = roomData.position; }
-                if (roomData.playback_speed) { setPlaybackSpeed(roomData.playback_speed); speedSelect.value = roomData.playback_speed; }
+                if (roomData.position) { video.currentTime = roomData.position; adminTime = roomData.position; }
+                if (roomData.playback_speed) { video.playbackRate = roomData.playback_speed; speedSelect.value = roomData.playback_speed; }
                 if (roomData.playback_state) adminState = roomData.playback_state;
-                if (adminState === 'playing') playActiveMedia();
+                if (adminState === 'playing') video.play().catch(e => {});
 
             } catch(e) {
                 console.error("Session restoration error:", e);
                 localStorage.removeItem('private_theater_session');
             }
-        });
-
-        function extractYtId(url) {
-            const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
-            return match ? match[1] : null;
-        }
-
-        document.getElementById('broadcastYtBtn').addEventListener('click', async () => {
-            const url = document.getElementById('ytUrlInput').value.trim();
-            const videoId = extractYtId(url);
-            if (!videoId) return alert("Invalid YouTube URL.");
-            
-            const btn = document.getElementById('broadcastYtBtn'); btn.innerText = "Broadcasting...";
-            const payload = { type: 'youtube', videoId: videoId };
-            const jsonStr = JSON.stringify(payload);
-            
-            await mySupabase.from('rooms').update({ video_url: jsonStr }).eq('room_code', myRoomCode);
-            applyVideoSources(jsonStr);
-            setTimeout(() => { btn.innerText = "Broadcast YouTube"; closeDrawer(); }, 800);
         });
 
         document.getElementById('broadcastBtn').addEventListener('click', async () => {
@@ -1682,7 +1530,7 @@
             
             await mySupabase.from('rooms').update({ video_url: jsonStr }).eq('room_code', myRoomCode);
             applyVideoSources(jsonStr);
-            setTimeout(() => { btn.innerText = "Broadcast to Room"; closeDrawer(); }, 800);
+            setTimeout(() => { btn.innerText = "Broadcast Video"; closeDrawer(); }, 800);
         });
 
         function initSyncChannel() {
@@ -1710,15 +1558,13 @@
                       adminTime = payload.new.position; 
                       const newSpeed = payload.new.playback_speed;
                       
-                      if (newSpeed) { setPlaybackSpeed(newSpeed); speedSelect.value = newSpeed; }
-                      if (Math.abs(getActiveTime() - adminTime) > 2.0) { updateVideoStatus("↻ Syncing...", true); seekActiveMedia(adminTime); }
+                      if (newSpeed) { video.playbackRate = newSpeed; speedSelect.value = newSpeed; }
+                      if (Math.abs(video.currentTime - adminTime) > 2.0) { updateVideoStatus("↻ Syncing...", true); video.currentTime = adminTime; }
                       
                       if (adminState === 'playing') {
-                          let isPaused = (activePlayerType === 'youtube' && ytPlayerReady) ? (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) : video.paused;
-                          if (isPaused) playActiveMedia();
+                          if (video.paused) video.play().catch(e => {});
                       } else if (adminState === 'paused') {
-                          let isPaused = (activePlayerType === 'youtube' && ytPlayerReady) ? (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) : video.paused;
-                          if (!isPaused) pauseActiveMedia();
+                          if (!video.paused) video.pause();
                           updateVideoStatus("Paused by Admin", false);
                       }
                   }
@@ -1728,18 +1574,17 @@
         let lastAdminTime = 0;
         setInterval(() => {
             if (isController && myRoomCode) {
-                const currTime = getActiveTime();
-                if (Math.abs(currTime - lastAdminTime) > 2.0 && activePlayerType === 'youtube') {
-                    mySupabase.from('rooms').update({ position: currTime }).eq('room_code', myRoomCode);
+                const currTime = video.currentTime;
+                // Periodic DB updates
+                if (Math.abs(currTime - lastAdminTime) > 5.0) {
+                    lastAdminTime = currTime;
                 }
-                lastAdminTime = currTime;
             }
         }, 1000);
 
         setInterval(async () => {
             if (isController && myRoomCode) {
-                let isPaused = (activePlayerType === 'youtube' && ytPlayerReady) ? (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) : video.paused;
-                if (!isPaused) await mySupabase.from('rooms').update({ position: getActiveTime() }).eq('room_code', myRoomCode);
+                if (!video.paused) await mySupabase.from('rooms').update({ position: video.currentTime }).eq('room_code', myRoomCode);
             }
         }, 60000); 
 
@@ -1811,8 +1656,7 @@
             plPlayBtn.title = admin ? 'Play / Pause (Space)' : 'Click to resync if video is stuck';
             plBadge.classList.toggle('viewer', !admin);
             plBadgeText.innerText = admin ? 'Host' : 'Synced with host';
-            plWrap.classList.toggle('has-media', activePlayerType !== 'none' && !!myRoomCode);
-            plWrap.classList.toggle('direct', activePlayerType === 'direct');
+            plWrap.classList.toggle('has-media', !!myRoomCode && !!video.src);
             const sub = document.getElementById('plEmptySub');
             if (sub) sub.innerText = myRoomCode ? (admin ? 'Open Settings (N) and broadcast a video' : 'Waiting for the host to start a video…') : 'Create or join a room to begin';
         }
@@ -1858,25 +1702,17 @@
         }
         function playerTogglePlay() {
             if (!isController) {
-                if (adminState === 'playing') {
-                    if (activePlayerType === 'direct') video.play().catch(() => {});
-                    else if (activePlayerType === 'youtube' && ytPlayerReady) ytPlayer.playVideo();
-                }
+                if (adminState === 'playing') video.play().catch(() => {});
                 return;
             }
             
-            if (activePlayerType === 'direct') {
-                if (video.paused) { video.play().catch(() => {}); flashCenter(ICON.play); }
-                else { video.pause(); flashCenter(ICON.pause); }
-            } else if (activePlayerType === 'youtube' && ytPlayerReady) {
-                if (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) ytPlayer.playVideo();
-                else ytPlayer.pauseVideo();
-            }
+            if (video.paused) { video.play().catch(() => {}); flashCenter(ICON.play); }
+            else { video.pause(); flashCenter(ICON.pause); }
         }
         plPlayBtn.addEventListener('click', (e) => { e.stopPropagation(); playerTogglePlay(); });
 
-        video.addEventListener('click', () => { if (activePlayerType === 'direct') playerTogglePlay(); });
-        video.addEventListener('dblclick', () => { if (activePlayerType === 'direct') toggleFullscreen(); });
+        video.addEventListener('click', playerTogglePlay);
+        video.addEventListener('dblclick', toggleFullscreen);
 
         function timelineRatio(clientX) {
             const r = plTimeline.getBoundingClientRect();
@@ -1898,7 +1734,7 @@
             return ratio * d;
         }
         plTimeline.addEventListener('pointerdown', (e) => {
-            if (!isController || activePlayerType !== 'direct') return;
+            if (!isController) return;
             scrubbing = true;
             plTimeline.classList.add('dragging');
             plTimeline.setPointerCapture(e.pointerId);
@@ -1932,7 +1768,7 @@
             plWrap.classList.remove('is-idle');
             clearTimeout(idleTimer);
             idleTimer = setTimeout(() => {
-                if (!video.paused || activePlayerType !== 'direct') plWrap.classList.add('is-idle');
+                if (!video.paused) plWrap.classList.add('is-idle');
             }, 2800);
         }
         ['mousemove', 'pointerdown', 'touchstart'].forEach(ev => plWrap.addEventListener(ev, wakePlayerUI, { passive: true }));
@@ -1947,7 +1783,7 @@
             const tag = document.activeElement && document.activeElement.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
             if (e.key.toLowerCase() === 'f' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); toggleFullscreen(); }
-            if (e.key.toLowerCase() === 'm' && activePlayerType === 'direct') { e.preventDefault(); video.muted = !video.muted; }
+            if (e.key.toLowerCase() === 'm') { e.preventDefault(); video.muted = !video.muted; }
         });
 
         let lastUsedSpeed = 1.0;
@@ -1961,11 +1797,11 @@
             switch(e.key.toLowerCase()) {
                 case 'arrowright':
                     e.preventDefault();
-                    seekActiveMedia(getActiveTime() + 10);
+                    video.currentTime += 10;
                     break;
                 case 'arrowleft':
                     e.preventDefault();
-                    seekActiveMedia(Math.max(0, getActiveTime() - 10));
+                    video.currentTime = Math.max(0, video.currentTime - 10);
                     break;
                 case ' ':
                     e.preventDefault();
@@ -1974,22 +1810,22 @@
                     break;
                 case 'c':
                     e.preventDefault();
-                    let speedUp = Math.min(2.0, (activePlayerType === 'youtube' && ytPlayerReady ? ytPlayer.getPlaybackRate() : video.playbackRate) + 0.1);
-                    setPlaybackSpeed(Number(speedUp.toFixed(1)));
+                    let speedUp = Math.min(2.0, video.playbackRate + 0.1);
+                    video.playbackRate = Number(speedUp.toFixed(1));
                     speedSelect.value = Number(speedUp.toFixed(1)).toString();
                     break;
                 case 'x':
                     e.preventDefault();
-                    let speedDown = Math.max(0.5, (activePlayerType === 'youtube' && ytPlayerReady ? ytPlayer.getPlaybackRate() : video.playbackRate) - 0.1);
-                    setPlaybackSpeed(Number(speedDown.toFixed(1)));
+                    let speedDown = Math.max(0.5, video.playbackRate - 0.1);
+                    video.playbackRate = Number(speedDown.toFixed(1));
                     speedSelect.value = Number(speedDown.toFixed(1)).toString();
                     break;
                 case 'z':
                     e.preventDefault();
-                    let currentRate = activePlayerType === 'youtube' && ytPlayerReady ? ytPlayer.getPlaybackRate() : video.playbackRate;
-                    if (currentRate !== 1.0) { lastUsedSpeed = currentRate; setPlaybackSpeed(1.0); } 
-                    else setPlaybackSpeed(lastUsedSpeed);
-                    speedSelect.value = (activePlayerType === 'youtube' && ytPlayerReady ? ytPlayer.getPlaybackRate() : video.playbackRate).toString();
+                    let currentRate = video.playbackRate;
+                    if (currentRate !== 1.0) { lastUsedSpeed = currentRate; video.playbackRate = 1.0; } 
+                    else video.playbackRate = lastUsedSpeed;
+                    speedSelect.value = video.playbackRate.toString();
                     break;
             }
         });
