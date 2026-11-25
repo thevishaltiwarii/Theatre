@@ -180,11 +180,6 @@
         .cam-label { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); color: white; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 600; backdrop-filter: blur(4px); z-index: 2; pointer-events: none; }
         .cam-placeholder { color: var(--border); font-size: 24px; pointer-events: none; }
 
-        .call-vol-bar { position: absolute; top: 8px; right: 8px; z-index: 4; display: none; align-items: center; gap: 6px; background: rgba(0,0,0,0.72); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(6px); padding: 4px 8px; border-radius: 8px; font-size: 10px; font-weight: 700; color: var(--text-main); }
-        .call-vol-bar.visible { display: flex; }
-        .call-vol-bar input[type="range"] { width: 64px; height: 4px; -webkit-appearance: none; appearance: none; background: rgba(255,255,255,0.28); border-radius: 4px; outline: none; cursor: pointer; }
-        .call-vol-bar input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 11px; border-radius: 50%; background: var(--accent); cursor: pointer; }
-
         .cam-controls-overlay { position: absolute; bottom: 0; left: 0; right: 0; display: flex; gap: 6px; padding: 8px; background: linear-gradient(0deg, rgba(0,0,0,0.8), transparent); z-index: 3; opacity: 0; visibility: hidden; transition: all 0.2s ease-in-out; }
         
         .cam-box:hover .cam-controls-overlay,
@@ -196,13 +191,6 @@
         .cam-ctrl-btn.join:hover { background: #059669; }
         .cam-ctrl-btn.off { background: rgba(220,38,38,0.85); border-color: #dc2626; }
         .cam-ctrl-btn.pin { background: rgba(14, 165, 233, 0.85); border-color: var(--accent); }
-
-        /* Call View Layout Mode */
-        body.call-view-active .theater { display: none; }
-        body.call-view-active .social-sidebar { width: 100%; max-width: 1200px; margin: 0 auto; flex-direction: row; align-items: stretch; }
-        body.call-view-active .social-sidebar > .cam-box { flex: 1; width: auto; aspect-ratio: auto; height: auto; min-height: 220px; }
-        body.call-view-active .social-sidebar > .chat-section { width: 320px; flex-shrink: 0; }
-        body.call-view-active #webrtcStatus { display: none !important; }
 
         .chat-section { display: flex; flex-direction: column; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; flex: 1; min-height: 0; }
         .chat-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--border); flex-shrink: 0; }
@@ -266,11 +254,6 @@
 
         .recovery-key-box { background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; word-break: break-all; font-family: monospace; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
 
-        .host-setting-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
-        .host-setting-row label { font-size: 12.5px; font-weight: 600; color: var(--text-main); }
-        .host-setting-note { font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.4; }
-        .call-view-btn.active { background: var(--success); border-color: var(--success); color: #fff; }
-
         @media (max-width: 1000px) {
             body { height: auto; min-height: 100vh; overflow: auto; }
             .main-stage { flex-direction: column; padding: 16px; }
@@ -278,9 +261,6 @@
             .cam-box { width: calc(50% - 6px); aspect-ratio: 16/10; }
             .player-wrapper { aspect-ratio: 16/9; flex: none; }
             .chat-section { width: 100%; flex: none; height: 320px; }
-            body.call-view-active .social-sidebar { flex-direction: column; }
-            body.call-view-active .social-sidebar > .cam-box { width: 100%; }
-            body.call-view-active .social-sidebar > .chat-section { width: 100%; }
         }
     </style>
 </head>
@@ -458,11 +438,6 @@
                 <div class="cam-placeholder" id="remotePlaceholder">🎥</div>
                 <video id="remoteVideo" autoplay playsinline></video>
                 <div class="cam-label" id="remoteLabel">Partner</div>
-                <div class="call-vol-bar" id="callVolBar" title="Adjust call volume">
-                    <span id="callVolIcon">🔊</span>
-                    <input type="range" id="callVolSlider" min="0" max="2.5" step="0.05" value="1.5" aria-label="Call Volume">
-                    <span id="callVolPct">150%</span>
-                </div>
                 <div class="cam-controls-overlay" id="remoteControlsOverlay" style="display:none;">
                     <button class="cam-ctrl-btn pin" onclick="pinCamera('remote')">📌 Pin to Main Screen</button>
                 </div>
@@ -523,22 +498,33 @@
                     <input type="text" id="url360" class="link-input" placeholder="360p Link (Optional)">
                     <button class="btn btn-primary" id="broadcastBtn" style="background: #db2777;">Broadcast Video</button>
                 </div>
+            </div>
 
-                <div class="host-setting-row">
-                    <label for="callQualitySelect">Call Quality</label>
-                    <select id="callQualitySelect">
-                        <option value="240p" selected>240p</option>
-                        <option value="360p">360p</option>
-                        <option value="480p">480p</option>
-                        <option value="720p">720p</option>
+            <!-- CALL SETTINGS -->
+            <div id="callSettingsPanel">
+                <div class="drawer-section-title">Call Settings</div>
+
+                <div style="margin-bottom: 4px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; margin-bottom:8px;">
+                        <span>🔊 Call voice boost</span>
+                        <span id="callBoostLabel" style="color: var(--text-muted); font-weight: 600;">Off</span>
+                    </div>
+                    <input type="range" id="callBoostSlider" min="0" max="100" step="5" value="0" style="width:100%; accent-color: var(--brand);">
+                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">Makes your partner's voice louder and lowers the movie so you can always hear them. Affects only your device.</p>
+                </div>
+
+                <div id="callAdminControls" style="display:none; margin-top: 18px;">
+                    <div style="font-size:13px; margin-bottom:8px;">📹 Call video quality <span style="color: var(--text-muted); font-size: 11px;">(applies to both of you)</span></div>
+                    <select id="callQualitySelect" style="width:100%; margin-bottom: 4px;">
+                        <option value="240">240p — saves data (default)</option>
+                        <option value="360">360p</option>
+                        <option value="480">480p</option>
+                        <option value="720">720p — uses the most data</option>
                     </select>
-                </div>
 
-                <div class="host-setting-row">
-                    <label>Anti-Echo (Call View)</label>
-                    <button type="button" class="btn btn-secondary call-view-btn" id="toggleCallViewBtn" style="width: auto; padding: 8px 12px; font-size: 12px;">Off</button>
+                    <button class="btn btn-secondary" id="callModeBtn" style="margin-top: 14px; font-size: 13px;">🎧 Call Mode (echo fix): Off</button>
+                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">Turn on if you hear echo. Switches both mics to phone-call audio processing (echo cancellation, noise suppression). Headphones work best.</p>
                 </div>
-                <div class="host-setting-note">Enables mic echo cancellation and switches to a call-focused view. UI view alone cannot block speaker-to-mic echo—headphones work best.</div>
             </div>
 
             <!-- SECURE DEVELOPER SETTINGS -->
@@ -620,7 +606,7 @@
 
         document.querySelectorAll('.cam-box').forEach(box => {
             box.addEventListener('click', (e) => {
-                if (!e.target.closest('.cam-ctrl-btn') && !e.target.closest('.call-vol-bar')) {
+                if (!e.target.closest('.cam-ctrl-btn')) {
                     box.classList.toggle('active-controls');
                 }
             });
@@ -661,54 +647,6 @@
         
         let iceCandidatesQueue = []; 
         let statsInterval = null; 
-
-        // --- CALL VOLUME (GAIN) & ANTI-ECHO CALL VIEW STATE ---
-        let callAudioCtx = null;
-        let callGainNode = null;
-        let callSourceNode = null;
-        let currentCallGain = 1.5;
-        let antiEchoCallView = false;
-
-        const callVolBar = document.getElementById('callVolBar');
-        const callVolSlider = document.getElementById('callVolSlider');
-        const callVolPct = document.getElementById('callVolPct');
-        const callVolIcon = document.getElementById('callVolIcon');
-        const callQualitySelect = document.getElementById('callQualitySelect');
-        const toggleCallViewBtn = document.getElementById('toggleCallViewBtn');
-
-        function applyCallVolume(val) {
-            currentCallGain = Math.max(0, Math.min(2.5, parseFloat(val) || 0));
-            if (callVolSlider) callVolSlider.value = currentCallGain;
-            if (callVolPct) callVolPct.innerText = Math.round(currentCallGain * 100) + '%';
-            if (callVolIcon) {
-                callVolIcon.innerText = currentCallGain === 0 ? '🔇' : (currentCallGain < 0.7 ? '🔉' : '🔊');
-            }
-
-            if (currentCallGain <= 1.0) {
-                remoteVideo.volume = currentCallGain;
-                if (callGainNode) callGainNode.gain.value = 1.0;
-            } else {
-                remoteVideo.volume = 1.0;
-                try {
-                    if (!callAudioCtx && remoteVideo.srcObject) {
-                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                        callAudioCtx = new AudioCtx();
-                        callSourceNode = callAudioCtx.createMediaElementSource(remoteVideo);
-                        callGainNode = callAudioCtx.createGain();
-                        callSourceNode.connect(callGainNode);
-                        callGainNode.connect(callAudioCtx.destination);
-                    }
-                    if (callAudioCtx && callAudioCtx.state === 'suspended') {
-                        callAudioCtx.resume().catch(() => {});
-                    }
-                    if (callGainNode) callGainNode.gain.value = currentCallGain;
-                } catch (e) {}
-            }
-        }
-
-        callVolSlider.addEventListener('input', (e) => {
-            applyCallVolume(e.target.value);
-        });
         
         // --- SECURE TURN VAULT & CREDENTIALS ---
         let rtcConfig = { iceServers: [] }; 
@@ -960,24 +898,16 @@
 
             rtcChannel.on('broadcast', { event: 'signal' }, async (payload) => {
                 const data = payload.payload;
+                if (window.CallSettings && window.CallSettings.onSignal(data)) return;
                 
                 if (data.type === 'ready') {
                     viewerReady = true;
                     if (isController && amIReady && peerConnection) {
                         rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'turn_update', iceServers: rtcConfig.iceServers } });
-                        rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'call_quality', quality: callQualitySelect.value } });
                         const offer = await peerConnection.createOffer(); 
                         await peerConnection.setLocalDescription(offer);
                         rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'offer', offer: offer } });
                     }
-                }
-                else if (data.type === 'call_quality') {
-                    if (data.quality) {
-                        setCallQualityPreset(data.quality, false);
-                    }
-                }
-                else if (data.type === 'call_view') {
-                    setAntiEchoCallView(!!data.enabled, false);
                 }
                 else if (data.type === 'turn_update') {
                     if (!isController) {
@@ -1158,7 +1088,6 @@
             document.getElementById('remoteVideo').srcObject = null;
             document.getElementById('localPlaceholder').style.display = 'block';
             document.getElementById('remotePlaceholder').style.display = 'block';
-            callVolBar.classList.remove('visible');
             
             const startBtn = document.getElementById('startCallBtn');
             startBtn.style.display = 'flex';
@@ -1185,19 +1114,11 @@
             }
         });
 
-        const CALL_QUALITY_PRESETS = {
-            '240p': { width: 320, height: 240, fps: 15, bitrate: 150000 },
-            '360p': { width: 640, height: 360, fps: 24, bitrate: 450000 },
-            '480p': { width: 854, height: 480, fps: 24, bitrate: 850000 },
-            '720p': { width: 1280, height: 720, fps: 30, bitrate: 1600000 }
-        };
-
         const CALL_LIMITS = {
             audioBitrate: 32000,
             videoBitrate: 150000,
             videoMaxFps: 15,
-            videoMaxHeight: 240,
-            videoMaxWidth: 320
+            videoMaxHeight: 240
         };
 
         function applyDataSaverLimits(pc) {
@@ -1221,88 +1142,6 @@
             });
         }
 
-        function setCallQualityPreset(quality, broadcast = false) {
-            const preset = CALL_QUALITY_PRESETS[quality] || CALL_QUALITY_PRESETS['240p'];
-            CALL_LIMITS.videoMaxHeight = preset.height;
-            CALL_LIMITS.videoMaxWidth = preset.width;
-            CALL_LIMITS.videoMaxFps = preset.fps;
-            CALL_LIMITS.videoBitrate = preset.bitrate;
-            if (callQualitySelect) callQualitySelect.value = quality;
-
-            if (localStream) {
-                const vTrack = localStream.getVideoTracks()[0];
-                if (vTrack && vTrack.applyConstraints) {
-                    vTrack.applyConstraints({
-                        width: { ideal: preset.width, max: preset.width },
-                        height: { ideal: preset.height, max: preset.height },
-                        frameRate: { ideal: preset.fps, max: preset.fps }
-                    }).catch(() => {});
-                }
-            }
-            if (peerConnection) {
-                applyDataSaverLimits(peerConnection);
-            }
-            if (broadcast && rtcChannel && isController) {
-                rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'call_quality', quality } });
-            }
-        }
-
-        callQualitySelect.addEventListener('change', (e) => {
-            if (!isController) return;
-            setCallQualityPreset(e.target.value, true);
-            triggerNotification('Call', `Call quality set to ${e.target.value}`);
-        });
-
-        async function refreshAudioEchoCancellation() {
-            if (!localStream) return;
-            try {
-                const newAudioStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        channelCount: antiEchoCallView ? 1 : 2,
-                        echoCancellation: antiEchoCallView,
-                        noiseSuppression: antiEchoCallView,
-                        autoGainControl: antiEchoCallView
-                    },
-                    video: false
-                });
-                const newAudioTrack = newAudioStream.getAudioTracks()[0];
-                if (!newAudioTrack) return;
-
-                const oldAudioTracks = localStream.getAudioTracks();
-                oldAudioTracks.forEach(t => {
-                    localStream.removeTrack(t);
-                    t.stop();
-                });
-                localStream.addTrack(newAudioTrack);
-
-                if (peerConnection) {
-                    const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'audio');
-                    if (sender && sender.replaceTrack) {
-                        await sender.replaceTrack(newAudioTrack);
-                    }
-                }
-            } catch (e) {}
-        }
-
-        function setAntiEchoCallView(enabled, broadcast = false) {
-            antiEchoCallView = !!enabled;
-            document.body.classList.toggle('call-view-active', antiEchoCallView);
-            if (toggleCallViewBtn) {
-                toggleCallViewBtn.innerText = antiEchoCallView ? 'On (Call View)' : 'Off';
-                toggleCallViewBtn.classList.toggle('active', antiEchoCallView);
-            }
-            refreshAudioEchoCancellation();
-            if (broadcast && rtcChannel && isController) {
-                rtcChannel.send({ type: 'broadcast', event: 'signal', payload: { type: 'call_view', enabled: antiEchoCallView } });
-            }
-        }
-
-        toggleCallViewBtn.addEventListener('click', () => {
-            if (!isController) return;
-            setAntiEchoCallView(!antiEchoCallView, true);
-            triggerNotification('Call', antiEchoCallView ? 'Anti-Echo Call View enabled' : 'Anti-Echo Call View disabled');
-        });
-
         function createPeerConnection() {
             if (peerConnection) peerConnection.close();
             peerConnection = new RTCPeerConnection(rtcConfig);
@@ -1322,9 +1161,7 @@
             peerConnection.ontrack = (event) => {
                 document.getElementById('remoteVideo').srcObject = event.streams[0];
                 document.getElementById('remotePlaceholder').style.display = 'none'; 
-                document.getElementById('remoteControlsOverlay').style.display = 'flex';
-                callVolBar.classList.add('visible');
-                applyCallVolume(currentCallGain);
+                document.getElementById('remoteControlsOverlay').style.display = 'flex'; 
             };
             
             peerConnection.onicecandidate = (event) => {
@@ -1350,28 +1187,15 @@
             if (localStream) return;
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: {
-                        channelCount: antiEchoCallView ? 1 : 2,
-                        echoCancellation: antiEchoCallView,
-                        noiseSuppression: antiEchoCallView,
-                        autoGainControl: antiEchoCallView
-                    },
-                    video: {
-                        width: { ideal: CALL_LIMITS.videoMaxWidth, max: CALL_LIMITS.videoMaxWidth },
-                        height: { ideal: CALL_LIMITS.videoMaxHeight, max: CALL_LIMITS.videoMaxHeight },
-                        frameRate: { ideal: Math.min(12, CALL_LIMITS.videoMaxFps), max: CALL_LIMITS.videoMaxFps }
-                    } 
+                    audio: { channelCount: 2, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+                    video: { width: { ideal: 320, max: 320 }, height: { ideal: 240, max: 240 }, frameRate: { ideal: 12, max: 15 } } 
                 });
                 document.getElementById('localVideo').srcObject = localStream;
                 document.getElementById('localPlaceholder').style.display = 'none'; 
 
                 const vTrack = localStream.getVideoTracks()[0];
                 if (vTrack && vTrack.applyConstraints) {
-                    vTrack.applyConstraints({
-                        width: { max: CALL_LIMITS.videoMaxWidth },
-                        height: { max: CALL_LIMITS.videoMaxHeight },
-                        frameRate: { max: CALL_LIMITS.videoMaxFps }
-                    }).catch(() => {});
+                    vTrack.applyConstraints({ width: { max: 320 }, height: { max: 240 }, frameRate: { max: CALL_LIMITS.videoMaxFps } }).catch(() => {});
                 }
                 
                 if (peerConnection) peerConnection.close();
@@ -2033,6 +1857,200 @@
                     break;
             }
         });
+
+        /* =====================================================================
+           CALL ENHANCEMENTS: quality picker, voice boost (movie ducking), call mode
+           ===================================================================== */
+        (function () {
+            const QUALITY = {
+                '240': { w: 320,  h: 240, br: 150000,  fps: 15 },
+                '360': { w: 480,  h: 360, br: 300000,  fps: 20 },
+                '480': { w: 640,  h: 480, br: 500000,  fps: 24 },
+                '720': { w: 1280, h: 720, br: 1200000, fps: 30 }
+            };
+            const state = {
+                quality: localStorage.getItem('private_theater_call_quality') || '240',
+                callMode: localStorage.getItem('private_theater_call_mode') === '1',
+                boost: parseFloat(localStorage.getItem('private_theater_call_boost') || '0') || 0
+            };
+            if (!QUALITY[state.quality]) state.quality = '240';
+            let appliedCallMode = false;   // the app's original mic setup = processing off
+
+            const qSel = document.getElementById('callQualitySelect');
+            const modeBtn = document.getElementById('callModeBtn');
+            const boostSlider = document.getElementById('callBoostSlider');
+            const boostLabel = document.getElementById('callBoostLabel');
+            const adminControls = document.getElementById('callAdminControls');
+
+            function send(payload) {
+                try { if (typeof rtcChannel !== 'undefined' && rtcChannel) rtcChannel.send({ type: 'broadcast', event: 'signal', payload }); } catch (e) {}
+            }
+            function broadcast() {
+                send({ type: 'call_settings', quality: state.quality, callMode: state.callMode });
+            }
+
+            /* ---------- Call video quality ---------- */
+            async function applyQuality() {
+                const q = QUALITY[state.quality] || QUALITY['240'];
+                CALL_LIMITS.videoBitrate = q.br;
+                CALL_LIMITS.videoMaxFps = q.fps;
+                CALL_LIMITS.videoMaxHeight = q.h;
+                const t = localStream && localStream.getVideoTracks()[0];
+                if (t && t.applyConstraints) {
+                    try {
+                        await t.applyConstraints({
+                            width: { ideal: q.w, max: q.w },
+                            height: { ideal: q.h, max: q.h },
+                            frameRate: { ideal: q.fps, max: q.fps }
+                        });
+                    } catch (e) {}
+                }
+                applyDataSaverLimits(peerConnection);
+                setTimeout(() => applyDataSaverLimits(peerConnection), 700);
+            }
+
+            /* ---------- Call mode (echo reduction) ---------- */
+            async function applyCallMode(force) {
+                const on = state.callMode;
+                try { if (navigator.audioSession) navigator.audioSession.type = on ? 'play-and-record' : 'auto'; } catch (e) {}
+                if (!localStream) return;
+                if (on === appliedCallMode && !force) return;
+                const track = localStream.getAudioTracks()[0];
+                if (!track) return;
+                let ok = false;
+                try {
+                    await track.applyConstraints({ echoCancellation: on, noiseSuppression: on, autoGainControl: on });
+                    const st = track.getSettings ? track.getSettings() : {};
+                    ok = (st.echoCancellation === undefined) || (!!st.echoCancellation === on);
+                } catch (e) { ok = false; }
+                if (!ok) {
+                    try {
+                        const ns = await navigator.mediaDevices.getUserMedia({
+                            audio: { channelCount: on ? 1 : 2, echoCancellation: on, noiseSuppression: on, autoGainControl: on }
+                        });
+                        const nt = ns.getAudioTracks()[0];
+                        nt.enabled = track.enabled;
+                        const sender = peerConnection && peerConnection.getSenders().find(x => x.track && x.track.kind === 'audio');
+                        if (sender) await sender.replaceTrack(nt);
+                        localStream.removeTrack(track); localStream.addTrack(nt);
+                        track.stop();
+                    } catch (e) { return; }
+                }
+                appliedCallMode = on;
+            }
+
+            function renderModeBtn() {
+                modeBtn.innerText = '🎧 Call Mode (echo fix): ' + (state.callMode ? 'On' : 'Off');
+                modeBtn.style.background = state.callMode ? 'var(--brand)' : '';
+                modeBtn.style.color = state.callMode ? '#fff' : '';
+            }
+
+            /* ---------- Voice boost: call gets louder, movie ducks ---------- */
+            const nativeVolume = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'volume');
+            let userVol = video.volume;
+            const duckFactor = () => 1 - 0.6 * state.boost;           // movie drops to 40% at max
+            Object.defineProperty(video, 'volume', {
+                configurable: true,
+                get() { return userVol; },
+                set(v) { userVol = Math.min(1, Math.max(0, Number(v) || 0)); nativeVolume.set.call(video, userVol * duckFactor()); }
+            });
+            function applyDuck() { nativeVolume.set.call(video, userVol * duckFactor()); }
+
+            let actx = null, srcNode = null, gainNode = null, compNode = null, routedStream = null, weMutedRemote = false;
+            function unroute() {
+                try { if (srcNode) srcNode.disconnect(); if (gainNode) gainNode.disconnect(); if (compNode) compNode.disconnect(); } catch (e) {}
+                srcNode = gainNode = compNode = routedStream = null;
+                if (weMutedRemote) { remoteVideo.muted = false; weMutedRemote = false; }
+            }
+            function routeRemote() {
+                const stream = remoteVideo.srcObject;
+                if (state.boost <= 0 || !stream || !stream.getAudioTracks().length) { unroute(); return; }
+                try {
+                    const AC = window.AudioContext || window.webkitAudioContext;
+                    if (!AC) return;
+                    actx = actx || new AC();
+                    if (actx.state === 'suspended') actx.resume().then(routeRemote).catch(() => {});
+                    if (actx.state !== 'running') return;                 // stay on normal playback until allowed
+                    if (routedStream !== stream) {
+                        unroute();
+                        srcNode = actx.createMediaStreamSource(stream);
+                        gainNode = actx.createGain();
+                        compNode = actx.createDynamicsCompressor();       // keeps the boosted voice from clipping
+                        compNode.threshold.value = -6; compNode.knee.value = 4; compNode.ratio.value = 12;
+                        compNode.attack.value = 0.003; compNode.release.value = 0.15;
+                        srcNode.connect(gainNode); gainNode.connect(compNode); compNode.connect(actx.destination);
+                        routedStream = stream;
+                    }
+                    gainNode.gain.value = 1 + state.boost;                // up to 2x
+                    if (!remoteVideo.muted) { remoteVideo.muted = true; weMutedRemote = true; }
+                } catch (e) { unroute(); }
+            }
+            function applyBoost() {
+                applyDuck();
+                routeRemote();
+                boostLabel.innerText = state.boost <= 0 ? 'Off' : Math.round(state.boost * 100) + '%';
+            }
+            boostSlider.value = Math.round(state.boost * 100);
+            boostSlider.addEventListener('input', () => {
+                state.boost = parseInt(boostSlider.value, 10) / 100;
+                localStorage.setItem('private_theater_call_boost', String(state.boost));
+                applyBoost();
+            });
+            // Browsers only allow audio processing after a tap/click
+            document.addEventListener('pointerdown', () => { if (state.boost > 0) routeRemote(); }, { passive: true });
+            setInterval(() => { if (state.boost > 0 || routedStream) routeRemote(); }, 1500);
+            applyBoost();
+
+            /* ---------- Admin controls ---------- */
+            qSel.value = state.quality;
+            renderModeBtn();
+            qSel.addEventListener('change', () => {
+                state.quality = qSel.value;
+                localStorage.setItem('private_theater_call_quality', state.quality);
+                applyQuality(); broadcast();
+            });
+            modeBtn.addEventListener('click', () => {
+                state.callMode = !state.callMode;
+                localStorage.setItem('private_theater_call_mode', state.callMode ? '1' : '0');
+                renderModeBtn(); applyCallMode(); broadcast();
+            });
+
+            // show admin-only controls whenever the Host Controls panel is visible
+            const syncAdminUI = () => { adminControls.style.display = (adminVideoPanel.style.display !== 'none') ? 'block' : 'none'; };
+            new MutationObserver(syncAdminUI).observe(adminVideoPanel, { attributes: true, attributeFilter: ['style'] });
+            syncAdminUI();
+
+            /* ---------- Wire into the existing call flow ---------- */
+            const _origStartLocalCamera = startLocalCamera;
+            startLocalCamera = async function () {
+                const alreadyOn = !!localStream;
+                await _origStartLocalCamera();
+                if (!alreadyOn && localStream) {
+                    appliedCallMode = false;
+                    await applyQuality();
+                    await applyCallMode();
+                    if (isController) broadcast();
+                }
+            };
+
+            window.CallSettings = {
+                onSignal(data) {
+                    if (data.type === 'call_settings') {
+                        if (!isController) {
+                            const modeChanged = !!data.callMode !== state.callMode;
+                            if (QUALITY[data.quality]) state.quality = data.quality;
+                            state.callMode = !!data.callMode;
+                            qSel.value = state.quality; renderModeBtn();
+                            applyQuality(); applyCallMode();
+                            if (modeChanged) triggerNotification('Host', state.callMode ? 'Call Mode turned on (echo reduction).' : 'Call Mode turned off.');
+                        }
+                        return true;
+                    }
+                    if (data.type === 'ready' && isController) broadcast();
+                    return false;
+                }
+            };
+        })();
     </script>
 </body>
 </html>
